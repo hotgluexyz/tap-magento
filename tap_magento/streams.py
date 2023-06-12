@@ -188,7 +188,6 @@ class OrdersStream(MagentoStream):
 
 
 class ProductsStream(MagentoStream):
-
     name = "products"
     path = "/products"
     primary_keys = ["id"]
@@ -239,7 +238,6 @@ class ProductsStream(MagentoStream):
 
 
 class ProductItemStocksStream(MagentoStream):
-
     name = "product_item_stocks"
     path = "/stockItems/{product_sku}"
     primary_keys = ["item_id"]
@@ -278,7 +276,6 @@ class ProductItemStocksStream(MagentoStream):
 
 
 class CategoryStream(MagentoStream):
-
     name = "categories"
     path = "/categories/list"
     primary_keys = ["id"]
@@ -302,7 +299,6 @@ class CategoryStream(MagentoStream):
 
 
 class SaleRulesStream(MagentoStream):
-
     name = "salerules"
     path = "/salesRules/search"
     primary_keys = ["rule_id"]
@@ -340,7 +336,6 @@ class SaleRulesStream(MagentoStream):
 
 
 class CouponsStream(MagentoStream):
-
     name = "coupons"
     path = "/coupons/search"
     primary_keys = ["coupon_id"]
@@ -358,7 +353,6 @@ class CouponsStream(MagentoStream):
 
 
 class InvoicesStream(MagentoStream):
-
     name = "invoices"
     path = "/invoices"
     primary_keys = ["increment_id"]
@@ -411,5 +405,7 @@ class InvoicesStream(MagentoStream):
         th.Property("updated_at", th.DateTimeType),
         th.Property("items", th.CustomType({"type": ["array", "string"]})),
         th.Property("comments", th.CustomType({"type": ["array", "string"]})),
-        th.Property("extension_attributes", th.CustomType({"type": ["object", "string"]})),
+        th.Property(
+            "extension_attributes", th.CustomType({"type": ["object", "string"]})
+        ),
     ).to_dict()
