@@ -4,7 +4,7 @@ import requests
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, List, Iterable
-
+import copy
 from memoization import cached
 
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -13,9 +13,15 @@ from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
 from datetime import datetime
 import backoff
+from http.client import RemoteDisconnected
+
 
 
 logging.getLogger("backoff").setLevel(logging.CRITICAL)
+
+
+class TooManyRequestsError(Exception):
+    pass
 
 
 class MagentoStream(RESTStream):
@@ -29,11 +35,15 @@ class MagentoStream(RESTStream):
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
         return f"{store_url}/rest/V1"
-    
+
     @property
     def page_size(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        page_size = self.config.get("page_size") if self.config.get("page_size") != None else 300
+        page_size = (
+            self.config.get("page_size")
+            if self.config.get("page_size") != None
+            else 300
+        )
         return page_size
 
     records_jsonpath = "$.items[*]"
@@ -145,6 +155,8 @@ class MagentoStream(RESTStream):
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}"
             )
+            if response.status_code == 429:
+                raise TooManyRequestsError("Too Many Requests")
             raise FatalAPIError(msg)
 
         elif 500 <= response.status_code < 600:
@@ -164,8 +176,83 @@ class MagentoStream(RESTStream):
         """Instantiate a decorator for handling request failures."""
         decorator: Callable = backoff.on_exception(
             backoff.expo,
-            (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError),
-            max_tries=5,
-            factor=2,
+            (
+                RetriableAPIError,
+                requests.exceptions.ReadTimeout,
+                ConnectionError,
+                TooManyRequestsError,
+            ),
+            max_tries=8,
+            factor=4,
         )(func)
         return decorator
+    
+    def request_decorator(self, func: Callable) -> Callable:
+        """Instantiate a decorator for handling request failures."""
+
+        @backoff.on_exception(
+            backoff.expo,
+            (
+                RetriableAPIError,
+                requests.exceptions.ReadTimeout,
+                ConnectionError,
+                TooManyRequestsError,
+                requests.exceptions.RequestException,
+                RemoteDisconnected,
+            ),
+            max_tries=8,
+            factor=4,
+        )
+        def decorated_function(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except requests.exceptions.RequestException as e:
+                if isinstance(e, requests.exceptions.RequestException) and 'RemoteDisconnected' in str(e):
+                    raise RemoteDisconnected("RemoteDisconnected: Remote end closed connection without response") from e
+                else:
+                    raise
+
+        return decorated_function
+
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        """Request records from REST endpoint(s), returning response records.
+
+        If pagination is detected, pages will be recursed automatically.
+
+        Args:
+            context: Stream partition or context dictionary.
+
+        Yields:
+            An item for every record in the response.
+
+        Raises:
+            RuntimeError: If a loop in pagination is detected. That is, when two
+                consecutive pagination tokens are identical.
+        """
+        next_page_token: Any = None
+        finished = False
+        decorated_request = self.request_decorator(self._request)
+
+        while not finished:
+            prepared_request = self.prepare_request(
+                context, next_page_token=next_page_token
+            )
+            try:
+                resp = decorated_request(prepared_request, context)
+            except RemoteDisconnected as e:
+                raise RuntimeError("RemoteDisconnected: Remote end closed connection without response") from e
+
+            for row in self.parse_response(resp):
+                yield row
+            previous_token = copy.deepcopy(next_page_token)
+            next_page_token = self.get_next_page_token(
+                response=resp, previous_token=previous_token
+            )
+            if next_page_token and next_page_token == previous_token:
+                raise RuntimeError(
+                    f"Loop detected in pagination. "
+                    f"Pagination token {next_page_token} is identical to the prior token."
+                )
+            # Cycle until get_next_page_token() no longer returns a value
+            finished = not next_page_token
