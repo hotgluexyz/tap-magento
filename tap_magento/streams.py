@@ -283,36 +283,44 @@ class ProductStockStatusesStream(MagentoStream):
     name = "product_stock_statuses"
     path = "/stockStatuses/{product_sku}"
     primary_keys = ["item_id"]
-    records_jsonpath: str = "$.stock_item[*]"
+    records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream
     schema = th.PropertiesList(
-        th.Property("item_id", th.NumberType),
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
-        th.Property("is_in_stock", th.BooleanType),
-        th.Property("is_qty_decimal", th.BooleanType),
-        th.Property("show_default_notification_message", th.BooleanType),
-        th.Property("use_config_min_qty", th.BooleanType),
-        th.Property("min_qty", th.NumberType),
-        th.Property("use_config_min_sale_qty", th.NumberType),
-        th.Property("min_sale_qty", th.NumberType),
-        th.Property("use_config_max_sale_qty", th.BooleanType),
-        th.Property("max_sale_qty", th.NumberType),
-        th.Property("use_config_backorders", th.BooleanType),
-        th.Property("backorders", th.NumberType),
-        th.Property("use_config_notify_stock_qty", th.BooleanType),
-        th.Property("notify_stock_qty", th.NumberType),
-        th.Property("use_config_qty_increments", th.BooleanType),
-        th.Property("qty_increments", th.NumberType),
-        th.Property("use_config_enable_qty_inc", th.BooleanType),
-        th.Property("enable_qty_increments", th.BooleanType),
-        th.Property("use_config_manage_stock", th.BooleanType),
-        th.Property("manage_stock", th.BooleanType),
-        th.Property("low_stock_date", th.DateTimeType),
-        th.Property("is_decimal_divided", th.BooleanType),
-        th.Property("stock_status_changed_auto", th.NumberType),
+        th.Property("stock_status", th.NumberType),
+        th.Property("stock_item", 
+            th.ObjectType(
+                th.Property("item_id", th.NumberType),
+                th.Property("product_id", th.NumberType),
+                th.Property("stock_id", th.NumberType),
+                th.Property("qty", th.NumberType),
+                th.Property("is_in_stock", th.BooleanType),
+                th.Property("is_qty_decimal", th.BooleanType),
+                th.Property("show_default_notification_message", th.BooleanType),
+                th.Property("use_config_min_qty", th.BooleanType),
+                th.Property("min_qty", th.NumberType),
+                th.Property("use_config_min_sale_qty", th.NumberType),
+                th.Property("min_sale_qty", th.NumberType),
+                th.Property("use_config_max_sale_qty", th.BooleanType),
+                th.Property("max_sale_qty", th.NumberType),
+                th.Property("use_config_backorders", th.BooleanType),
+                th.Property("backorders", th.NumberType),
+                th.Property("use_config_notify_stock_qty", th.BooleanType),
+                th.Property("notify_stock_qty", th.NumberType),
+                th.Property("use_config_qty_increments", th.BooleanType),
+                th.Property("qty_increments", th.NumberType),
+                th.Property("use_config_enable_qty_inc", th.BooleanType),
+                th.Property("enable_qty_increments", th.BooleanType),
+                th.Property("use_config_manage_stock", th.BooleanType),
+                th.Property("manage_stock", th.BooleanType),
+                th.Property("low_stock_date", th.DateTimeType),
+                th.Property("is_decimal_divided", th.BooleanType),
+                th.Property("stock_status_changed_auto", th.NumberType),
+            )
+        ),
     ).to_dict()
 
 class CategoryStream(MagentoStream):
