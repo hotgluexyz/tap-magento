@@ -23,9 +23,9 @@ STREAM_TYPES = [
     OrdersStream,
     ProductsStream,
     ProductItemStocksStream,
-    #CategoryStream,
+    CategoryStream,
     SaleRulesStream,
-    #CouponsStream,
+    CouponsStream,
     InvoicesStream
 ]
 
