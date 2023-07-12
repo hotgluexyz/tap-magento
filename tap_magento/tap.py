@@ -52,7 +52,7 @@ class TapMagento(Tap):
             "store_url", th.StringType, required=True, description="The store url"
         ),
         th.Property(
-            "user_agent",th.StringType, required=True,description="Acceptable user agent for tap-magento"
+            "user_agent",th.StringType,description="Acceptable user agent for tap-magento"
         )
     ).to_dict()
 
