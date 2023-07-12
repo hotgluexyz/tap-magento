@@ -19,7 +19,7 @@ from tap_magento.streams import (
 
 
 STREAM_TYPES = [
-    UsersStream,
+    #UsersStream,
     OrdersStream,
     ProductsStream,
     ProductItemStocksStream,
