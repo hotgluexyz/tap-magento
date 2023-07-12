@@ -19,13 +19,13 @@ from tap_magento.streams import (
 
 
 STREAM_TYPES = [
-    # UsersStream,
+    UsersStream,
     OrdersStream,
     ProductsStream,
     ProductItemStocksStream,
-    CategoryStream,
+    #CategoryStream,
     SaleRulesStream,
-    CouponsStream,
+    #CouponsStream,
     InvoicesStream
 ]
 
@@ -51,6 +51,9 @@ class TapMagento(Tap):
         th.Property(
             "store_url", th.StringType, required=True, description="The store url"
         ),
+        th.Property(
+            "user_agent",th.StringType, required=True,description="Acceptable user agent for tap-magento"
+        )
     ).to_dict()
 
     def discover_streams(self) -> List[Stream]:
