@@ -165,7 +165,7 @@ class MagentoStream(RESTStream):
         decorator: Callable = backoff.on_exception(
             backoff.expo,
             (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError),
-            max_tries=5,
+            max_tries=8,
             factor=2,
         )(func)
         return decorator
