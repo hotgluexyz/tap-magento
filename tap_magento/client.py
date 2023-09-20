@@ -62,13 +62,15 @@ class MagentoStream(RESTStream):
                     json=payload,
                 )
                 login.json()
-                login.raise_for_status()
+                # login.raise_for_status()
+                self.validate_response(login)
             except:
                 login = s.post(
                     f"{self.config['store_url']}/rest/V1/integration/admin/token",
                     json=payload,
                 )
-            login.raise_for_status()
+            # login.raise_for_status()
+            self.validate_response(login)
 
             self.access_token = login.json()
 
@@ -144,6 +146,7 @@ class MagentoStream(RESTStream):
             msg = (
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}"
+                f" with text:{response.text} "
             )
             raise FatalAPIError(msg)
 
@@ -151,6 +154,7 @@ class MagentoStream(RESTStream):
             msg = (
                 f"{response.status_code} Server Error: "
                 f"{response.reason} for path: {self.path}"
+                f" with text:{response.text} "
             )
             raise RetriableAPIError(msg)
 
