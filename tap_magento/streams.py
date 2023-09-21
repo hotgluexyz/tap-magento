@@ -238,6 +238,44 @@ class ProductsStream(MagentoStream):
         }
 
 
+class ProductAttributesStream(MagentoStream):
+
+    name = "product_attributes"
+    path = "/products/attributes"
+    primary_keys = ["attribute_id"]
+    records_jsonpath: str = "$.items[*]"
+    replication_key = None
+    schema = th.PropertiesList(
+        th.Property("attribute_id", th.NumberType),
+        th.Property("attribute_code", th.StringType),
+        th.Property("frontend_input", th.StringType),
+        th.Property("entity_type_id", th.StringType),
+        th.Property("is_required", th.BooleanType),
+        th.Property("backend_type", th.StringType),
+        th.Property("backend_model", th.StringType),
+        th.Property("is_unique", th.StringType),
+    ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        return {
+            "attribute_code": record["attribute_code"],
+        }
+
+
+class ProductAttributeDetailsStream(MagentoStream):
+
+    name = "product_attribute_details"
+    path = "/products/attributes/{attribute_code}"
+    primary_keys = ["attribute_id"]
+    records_jsonpath: str = "$[*]"
+    replication_key = None
+    parent_stream_type = ProductAttributesStream
+    schema = th.PropertiesList(
+        th.Property("attribute_id", th.NumberType)
+    ).to_dict()
+
+
 class ProductItemStocksStream(MagentoStream):
 
     name = "product_item_stocks"
