@@ -238,6 +238,97 @@ class ProductsStream(MagentoStream):
         }
 
 
+class ProductAttributesStream(MagentoStream):
+
+    name = "product_attributes"
+    path = "/products/attributes"
+    primary_keys = ["attribute_id"]
+    records_jsonpath: str = "$.items[*]"
+    replication_key = None
+    schema = th.PropertiesList(
+        th.Property("attribute_id", th.NumberType),
+        th.Property("attribute_code", th.StringType),
+        th.Property("frontend_input", th.StringType),
+        th.Property("entity_type_id", th.StringType),
+        th.Property("is_required", th.BooleanType),
+        th.Property("backend_type", th.StringType),
+        th.Property("backend_model", th.StringType),
+        th.Property("is_unique", th.StringType),
+        th.Property("is_wysiwyg_enabled", th.BooleanType),
+        th.Property("is_html_allowed_on_front", th.BooleanType),
+        th.Property("used_for_sort_by", th.BooleanType),
+        th.Property("is_filterable", th.BooleanType),
+        th.Property("is_filterable_in_search", th.BooleanType),
+        th.Property("is_used_in_grid", th.BooleanType),
+        th.Property("is_visible_in_grid", th.BooleanType),
+        th.Property("is_filterable_in_grid", th.BooleanType),
+        th.Property("position", th.NumberType),
+        th.Property("apply_to", th.CustomType({"type": ["array", "string"]})),
+        th.Property("is_searchable", th.StringType),
+        th.Property("is_visible_in_advanced_search", th.StringType),
+        th.Property("is_comparable", th.StringType),
+        th.Property("is_used_for_promo_rules", th.StringType),
+        th.Property("is_visible_on_front", th.StringType),
+        th.Property("used_in_product_listing", th.StringType),
+        th.Property("is_visible", th.BooleanType),
+        th.Property("scope", th.StringType),
+        th.Property("options", th.CustomType({"type": ["array", "string"]})),
+        th.Property("is_user_defined", th.BooleanType),
+        th.Property("default_frontend_label", th.StringType),
+        th.Property("frontend_labels", th.CustomType({"type": ["array", "string"]})),
+        th.Property("validation_rules", th.CustomType({"type": ["array", "string"]})),
+    ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        return {
+            "attribute_code": record["attribute_code"],
+        }
+
+
+class ProductAttributeDetailsStream(MagentoStream):
+
+    name = "product_attribute_details"
+    path = "/products/attributes/{attribute_code}"
+    primary_keys = ["attribute_id"]
+    records_jsonpath: str = "$[*]"
+    replication_key = None
+    parent_stream_type = ProductAttributesStream
+    schema = th.PropertiesList(
+        th.Property("attribute_id", th.NumberType),
+        th.Property("is_wysiwyg_enabled", th.BooleanType),
+        th.Property("is_html_allowed_on_front", th.BooleanType),
+        th.Property("used_for_sort_by", th.BooleanType),
+        th.Property("is_filterable", th.BooleanType),
+        th.Property("is_filterable_in_search", th.BooleanType),
+        th.Property("is_used_in_grid", th.BooleanType),
+        th.Property("is_visible_in_grid", th.BooleanType),
+        th.Property("is_filterable_in_grid", th.BooleanType),
+        th.Property("position", th.NumberType),
+        th.Property("apply_to", th.CustomType({"type": ["array", "string"]})),
+        th.Property("is_searchable", th.StringType),
+        th.Property("is_visible_in_advanced_search", th.StringType),
+        th.Property("is_comparable", th.StringType),
+        th.Property("is_used_for_promo_rules", th.StringType),
+        th.Property("is_visible_on_front", th.StringType),
+        th.Property("used_in_product_listing", th.StringType),
+        th.Property("is_visible", th.BooleanType),
+        th.Property("scope", th.StringType),
+        th.Property("attribute_code", th.StringType),
+        th.Property("frontend_input", th.StringType),
+        th.Property("entity_type_id", th.StringType),
+        th.Property("is_required", th.BooleanType),
+        th.Property("options", th.CustomType({"type": ["array", "string"]})),
+        th.Property("is_user_defined", th.BooleanType),
+        th.Property("default_frontend_label", th.StringType),
+        th.Property("frontend_labels", th.CustomType({"type": ["array", "string"]})),
+        th.Property("backend_type", th.StringType),
+        th.Property("backend_model", th.StringType),
+        th.Property("is_unique", th.StringType),
+        th.Property("validation_rules", th.CustomType({"type": ["array", "string"]})),
+    ).to_dict()
+
+
 class ProductItemStocksStream(MagentoStream):
 
     name = "product_item_stocks"
@@ -404,12 +495,12 @@ class CouponsStream(MagentoStream):
 
 
 class InvoicesStream(MagentoStream):
-
     name = "invoices"
     path = "/invoices"
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
+
     schema = th.PropertiesList(
         th.Property("base_currency_code", th.StringType),
         th.Property("base_discount_amount", th.NumberType),
@@ -458,4 +549,50 @@ class InvoicesStream(MagentoStream):
         th.Property("items", th.CustomType({"type": ["array", "string"]})),
         th.Property("comments", th.CustomType({"type": ["array", "string"]})),
         th.Property("extension_attributes", th.CustomType({"type": ["object", "string"]})),
+    ).to_dict()
+
+
+class StoreConfigsStream(MagentoStream):
+    name = "store_configs"
+    path = "/store/storeConfigs"
+    primary_keys = ["id"]
+    records_jsonpath: str = "$.[*]"
+
+    def get_next_page_token(self, response, previous_token):
+        return None
+
+    schema = th.PropertiesList(
+        th.Property("id", th.NumberType),
+        th.Property("code", th.StringType),
+        th.Property("website_id", th.NumberType),
+        th.Property("locale", th.StringType),
+        th.Property("base_currency_code", th.StringType),
+        th.Property("default_display_currency_code", th.StringType),
+        th.Property("timezone", th.StringType),
+        th.Property("weight_unit", th.StringType),
+        th.Property("base_url", th.StringType),
+        th.Property("base_link_url", th.StringType),
+        th.Property("base_static_url", th.StringType),
+        th.Property("base_media_url", th.StringType),
+        th.Property("secure_base_url", th.StringType),
+        th.Property("secure_base_link_url", th.StringType),
+        th.Property("secure_base_static_url", th.StringType),
+        th.Property("secure_base_media_url", th.StringType),
+    ).to_dict()
+
+
+class StoreWebsitesStream(MagentoStream):
+    name = "store_websites"
+    path = "/store/websites"
+    primary_keys = ["id"]
+    records_jsonpath: str = "$.[*]"
+
+    def get_next_page_token(self, response, previous_token):
+        return None
+
+    schema = th.PropertiesList(
+        th.Property("id", th.NumberType),
+        th.Property("code", th.StringType),
+        th.Property("name", th.StringType),
+        th.Property("default_group_id", th.NumberType),
     ).to_dict()

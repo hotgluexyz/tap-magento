@@ -10,12 +10,16 @@ from tap_magento.streams import (
     UsersStream,
     OrdersStream,
     ProductsStream,
+    ProductAttributesStream,
+    ProductAttributeDetailsStream,
     ProductItemStocksStream,
     ProductStockStatusesStream,
     CategoryStream,
     SaleRulesStream,
     CouponsStream,
-    InvoicesStream
+    InvoicesStream,
+    StoreConfigsStream,
+    StoreWebsitesStream
 )
 
 
@@ -23,12 +27,16 @@ STREAM_TYPES = [
     # UsersStream,
     OrdersStream,
     ProductsStream,
+    ProductAttributesStream,
+    ProductAttributeDetailsStream,
     ProductItemStocksStream,
     ProductStockStatusesStream,
     CategoryStream,
     SaleRulesStream,
     CouponsStream,
-    InvoicesStream
+    InvoicesStream,
+    StoreConfigsStream,
+    StoreWebsitesStream
 ]
 
 
