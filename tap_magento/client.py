@@ -1,18 +1,20 @@
 """REST client handling, including MagentoStream base class."""
 
-import requests
+import backoff
 import logging
+import requests
+
 from pathlib import Path
-from typing import Any, Dict, Optional, Callable, List, Iterable
+from typing import Any, Dict, Optional, Callable, Iterable
 
-from memoization import cached
-
-from singer_sdk.helpers.jsonpath import extract_jsonpath
+from datetime import datetime
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
-from datetime import datetime
-import backoff
+from singer_sdk.helpers.jsonpath import extract_jsonpath
+
+from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
+from requests_oauthlib import OAuth1
 
 
 logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -37,15 +39,6 @@ class MagentoStream(RESTStream):
         return page_size
 
     records_jsonpath = "$.items[*]"
-
-    @property
-    def authenticator(self) -> BearerTokenAuthenticator:
-        """Return a new authenticator object."""
-        if self.config.get("username") and self.config.get("password") is not None:
-            token = self.get_token()
-        else:
-            token = self.config.get("access_token")
-        return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
     def get_token(self):
         now = round(datetime.utcnow().timestamp())
@@ -75,6 +68,34 @@ class MagentoStream(RESTStream):
             self.access_token = login.json()
 
         return self.access_token
+        
+    @property
+    def authenticator(self) -> BearerTokenAuthenticator:
+        """Return a new authenticator object."""
+        if not self.config.get("use_oauth"):
+            if self.config.get("username") and self.config.get("password") is not None:
+                token = self.get_token()
+            else:
+                token = self.config.get("access_token")
+            return BearerTokenAuthenticator.create_for_stream(self, token=token)
+        return None
+
+
+    def prepare_request(self, context, next_page_token):
+        request = super().prepare_request(context, next_page_token)
+
+        if self.config.get("use_oauth"):
+            request.auth = OAuth1(
+                self.config.get('consumer_key'),
+                client_secret=self.config.get('consumer_secret'),
+                resource_owner_key=self.config.get("oauth_token", self.config.get("access_token")),
+                resource_owner_secret=self.config.get("oauth_token_secret", self.config.get("access_token_secret")),
+                signature_type="auth_header",
+                signature_method=SIGNATURE_HMAC_SHA256
+            )
+        
+        return request
+
 
     @property
     def http_headers(self) -> dict:
