@@ -140,6 +140,9 @@ class MagentoStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
+        if response.status_code == 429:
+            raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
+        
         if response.status_code == 404:
             pass
         elif 400 <= response.status_code < 500:
