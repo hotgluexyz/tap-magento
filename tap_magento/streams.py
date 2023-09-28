@@ -373,7 +373,7 @@ class ProductStockStatusesStream(MagentoStream):
 
     name = "product_stock_statuses"
     path = "/stockStatuses/{product_sku}"
-    primary_keys = ["item_id"]
+    primary_keys = ["stock_id", "product_id"]
     records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream

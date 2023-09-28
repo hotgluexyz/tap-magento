@@ -155,6 +155,24 @@ class MagentoStream(RESTStream):
                     "searchCriteria[filterGroups][0][filters][0][conditionType]"
                 ] = "gt"
             params["order_by"] = self.replication_key
+        
+        if self.config.get("store_id"):
+            filter_idx = 0
+            if self.replication_key:
+                filter_idx + 1
+            
+            params[
+                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+            ] = "store_id"
+
+            params[
+                f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+            ] = self.config.get("store_id")
+
+            params[
+                f"searchCriteria[filterGroups][0][filters][{filter_idx}][conditionType]"
+            ] = "eq"
+
         return params
 
     def validate_response(self, response: requests.Response) -> None:
