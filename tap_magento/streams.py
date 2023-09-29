@@ -235,6 +235,7 @@ class ProductsStream(MagentoStream):
         """Return a context dictionary for child streams."""
         return {
             "product_sku": record["sku"],
+            "product_status": record["status"]
         }
 
 
@@ -413,6 +414,18 @@ class ProductStockStatusesStream(MagentoStream):
             )
         ),
     ).to_dict()
+
+    def post_process(
+        self,
+        row: dict,
+        context: dict | None = None,  # noqa: ARG002
+    ) -> dict | None:
+        # Ignore disabled products
+        if context.get("product_status") == 2:
+            return None
+
+        return row
+
 
 class CategoryStream(MagentoStream):
 
