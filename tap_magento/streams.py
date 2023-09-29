@@ -373,11 +373,12 @@ class ProductStockStatusesStream(MagentoStream):
 
     name = "product_stock_statuses"
     path = "/stockStatuses/{product_sku}"
-    primary_keys = ["stock_id", "product_id"]
+    primary_keys = ["stock_and_product_ids"]
     records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream
     schema = th.PropertiesList(
+        th.Property("stock_and_product_ids", th.StringType),
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
@@ -413,6 +414,12 @@ class ProductStockStatusesStream(MagentoStream):
             )
         ),
     ).to_dict()
+    
+    def parse_response(self, response):
+        for response in super().parse_response(response):
+            response["stock_and_product_ids"] = f"{response['stock_id']}_{response['product_id']}"
+            yield response
+
 
 class CategoryStream(MagentoStream):
 
