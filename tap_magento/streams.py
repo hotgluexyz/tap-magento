@@ -417,9 +417,9 @@ class ProductStockStatusesStream(MagentoStream):
 
     def post_process(
         self,
-        row: dict,
-        context: dict | None = None,  # noqa: ARG002
-    ) -> dict | None:
+        row,
+        context,
+    ):
         # Ignore disabled products
         if context.get("product_status") == 2:
             return None
