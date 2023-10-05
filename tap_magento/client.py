@@ -130,10 +130,13 @@ class MagentoStream(RESTStream):
         return next_page_token
 
     def get_url_params(
-        self, context: Optional[dict], next_page_token: Optional[Any]
-    ) -> Dict[str, Any]:
+        self, context, next_page_token
+    ):
         """Return a dictionary of values to be used in URL parameterization."""
         params = {}
+        if context is None:
+            context = {}
+
         params["searchCriteria[pageSize]"] = self.page_size
         if not next_page_token:
             params["searchCriteria[currentPage]"] = 1
@@ -152,15 +155,19 @@ class MagentoStream(RESTStream):
                     "searchCriteria[filterGroups][0][filters][0][value]"
                 ] = start_date
                 params[
-                    "searchCriteria[filterGroups][0][filters][0][conditionType]"
+                    "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
             params["order_by"] = self.replication_key
         
-        if self.config.get("store_id"):
+        if context.get("store_id"):
             filter_idx = 0
             if self.replication_key:
                 filter_idx + 1
             
+            # This is just a workaround, magento doesn't support store_code very well.
+            # In 80% of the cases, this workaround should work, on some other cases it
+            # will fail.
+            # More info on: https://github.com/magento/magento2/issues/15461
             params[
                 f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
             ] = "store_id"
@@ -168,10 +175,6 @@ class MagentoStream(RESTStream):
             params[
                 f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
             ] = self.config.get("store_id")
-
-            params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][conditionType]"
-            ] = "eq"
 
         return params
 
