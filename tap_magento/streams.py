@@ -11,6 +11,34 @@ import requests
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 
+class StoresStream(MagentoStream):
+    name = "stores"
+    path = "/store/storeGroups"
+    primary_keys = ["id"]
+    records_jsonpath = "$.[*]"
+
+    schema = th.PropertiesList(
+        th.Property("id", th.NumberType),
+        th.Property("website_id", th.NumberType),
+    ).to_dict()
+
+    def parse_response(self, response):
+        if self.config.get("fetch_all_stores", False):
+            yield from super().parse_response(response)
+
+        for response in super().parse_response(response):
+            if response["id"] == self.config.get("store_id", 0):
+                yield response
+    
+    def get_child_context(self, record, context):
+        return {
+            "store_id": record["id"],
+        }
+
+    def get_next_page_token(self, response, previous_token):
+        return None
+
+
 class UsersStream(MagentoStream):
     """Define custom stream."""
 
@@ -40,6 +68,7 @@ class OrdersStream(MagentoStream):
     path = "/orders"
     primary_keys = []  # TODO
     replication_key = "updated_at"
+    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("adjustment_negative", th.NumberType),
@@ -188,11 +217,11 @@ class OrdersStream(MagentoStream):
 
 
 class ProductsStream(MagentoStream):
-
     name = "products"
     path = "/products"
     primary_keys = ["id"]
     replication_key = "updated_at"
+    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
@@ -240,12 +269,13 @@ class ProductsStream(MagentoStream):
 
 
 class ProductAttributesStream(MagentoStream):
-
     name = "product_attributes"
     path = "/products/attributes"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
+    parent_stream_type = StoresStream
+
     schema = th.PropertiesList(
         th.Property("attribute_id", th.NumberType),
         th.Property("attribute_code", th.StringType),
@@ -288,13 +318,13 @@ class ProductAttributesStream(MagentoStream):
 
 
 class ProductAttributeDetailsStream(MagentoStream):
-
     name = "product_attribute_details"
     path = "/products/attributes/{attribute_code}"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
     parent_stream_type = ProductAttributesStream
+
     schema = th.PropertiesList(
         th.Property("attribute_id", th.NumberType),
         th.Property("is_wysiwyg_enabled", th.BooleanType),
@@ -331,13 +361,13 @@ class ProductAttributeDetailsStream(MagentoStream):
 
 
 class ProductItemStocksStream(MagentoStream):
-
     name = "product_item_stocks"
     path = "/stockItems/{product_sku}"
     primary_keys = ["item_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
     parent_stream_type = ProductsStream
+
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("item_id", th.NumberType),
@@ -371,13 +401,13 @@ class ProductItemStocksStream(MagentoStream):
 
 
 class ProductStockStatusesStream(MagentoStream):
-
     name = "product_stock_statuses"
     path = "/stockStatuses/{product_sku}"
     primary_keys = ["stock_id", "product_id"]
     records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream
+
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
@@ -428,12 +458,13 @@ class ProductStockStatusesStream(MagentoStream):
 
 
 class CategoryStream(MagentoStream):
-
     name = "categories"
     path = "/categories/list"
     primary_keys = ["id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
+    parent_stream_type = StoresStream
+
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("parent_id", th.NumberType),
@@ -452,12 +483,13 @@ class CategoryStream(MagentoStream):
 
 
 class SaleRulesStream(MagentoStream):
-
     name = "salerules"
     path = "/salesRules/search"
     primary_keys = ["rule_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
+    parent_stream_type = StoresStream
+
     schema = th.PropertiesList(
         th.Property("rule_id", th.NumberType),
         th.Property("name", th.StringType),
@@ -490,12 +522,13 @@ class SaleRulesStream(MagentoStream):
 
 
 class CouponsStream(MagentoStream):
-
     name = "coupons"
     path = "/coupons/search"
     primary_keys = ["coupon_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
+    parent_stream_type = StoresStream
+
     schema = th.PropertiesList(
         th.Property("coupon_id", th.NumberType),
         th.Property("rule_id", th.NumberType),
@@ -513,6 +546,7 @@ class InvoicesStream(MagentoStream):
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
+    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("base_currency_code", th.StringType),
