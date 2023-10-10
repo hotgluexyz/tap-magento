@@ -226,6 +226,7 @@ class ProductsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
+        th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
