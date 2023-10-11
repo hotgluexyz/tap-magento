@@ -183,7 +183,10 @@ class MagentoStream(RESTStream):
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
         
-        if response.status_code == 404:
+        if response.status_code in [404, 503]:
+            self.logger.info("Response status code: {} - Endpoint skipped".format(response.status_code))
+            if response.status_code == 503:
+                self.logger.info(f"This store is possibly going maintenance mode: {self.path}")
             pass
         elif 400 <= response.status_code < 500:
             msg = (
@@ -203,7 +206,7 @@ class MagentoStream(RESTStream):
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
-        if response.status_code == 404:
+        if response.status_code == 404 or response.status_code > 500:
             return []
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
 
