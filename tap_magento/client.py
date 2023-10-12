@@ -116,7 +116,7 @@ class MagentoStream(RESTStream):
             )
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
-        elif response.status_code == 404:
+        elif response.status_code in [404, 503]:
             return None
         else:
             json_data = response.json()
