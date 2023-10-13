@@ -29,7 +29,7 @@ class StoresStream(MagentoStream):
         for response in super().parse_response(response):
             if response["id"] == self.config.get("store_id", 0):
                 yield response
-    
+
     def get_child_context(self, record, context):
         return {
             "store_id": record["id"],
@@ -414,7 +414,7 @@ class ProductStockStatusesStream(MagentoStream):
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
         th.Property("stock_status", th.NumberType),
-        th.Property("stock_item", 
+        th.Property("stock_item",
             th.ObjectType(
                 th.Property("item_id", th.NumberType),
                 th.Property("product_id", th.NumberType),
@@ -464,7 +464,6 @@ class CategoryStream(MagentoStream):
     primary_keys = ["id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
