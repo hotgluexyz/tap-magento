@@ -68,7 +68,6 @@ class OrdersStream(MagentoStream):
     path = "/orders"
     primary_keys = []  # TODO
     replication_key = "updated_at"
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("adjustment_negative", th.NumberType),
@@ -487,7 +486,6 @@ class SaleRulesStream(MagentoStream):
     primary_keys = ["rule_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("rule_id", th.NumberType),
@@ -526,7 +524,6 @@ class CouponsStream(MagentoStream):
     primary_keys = ["coupon_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("coupon_id", th.NumberType),
@@ -545,7 +542,6 @@ class InvoicesStream(MagentoStream):
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("base_currency_code", th.StringType),
