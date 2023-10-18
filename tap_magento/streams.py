@@ -275,7 +275,6 @@ class ProductAttributesStream(MagentoStream):
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("attribute_id", th.NumberType),

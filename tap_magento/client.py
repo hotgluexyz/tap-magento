@@ -31,7 +31,7 @@ class MagentoStream(RESTStream):
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
         return f"{store_url}/rest/V1"
-    
+
     @property
     def page_size(self) -> str:
         """Return the API URL root, configurable via tap settings."""
@@ -68,7 +68,7 @@ class MagentoStream(RESTStream):
             self.access_token = login.json()
 
         return self.access_token
-        
+
     @property
     def authenticator(self) -> BearerTokenAuthenticator:
         """Return a new authenticator object."""
@@ -91,7 +91,7 @@ class MagentoStream(RESTStream):
                 signature_type="auth_header",
                 signature_method=SIGNATURE_HMAC_SHA256
             )
-        
+
         return request
 
 
@@ -158,12 +158,12 @@ class MagentoStream(RESTStream):
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
             params["order_by"] = self.replication_key
-        
+
         if context.get("store_id"):
             filter_idx = 0
             if self.replication_key:
                 filter_idx + 1
-            
+
             # This is just a workaround, magento doesn't support store_code very well.
             # In 80% of the cases, this workaround should work, on some other cases it
             # will fail.
@@ -182,7 +182,7 @@ class MagentoStream(RESTStream):
         """Validate HTTP response."""
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
-        
+
         if response.status_code in [404, 503]:
             self.logger.info("Response status code: {} - Endpoint skipped".format(response.status_code))
             if response.status_code == 503:
