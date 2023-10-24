@@ -26,6 +26,13 @@ class MagentoStream(RESTStream):
     access_token = None
     expires_in = None
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.config.get("custom_cookies"):
+            for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
+                self._requests_session.cookies[cookie] = cookie_value
+
+
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
@@ -43,7 +50,7 @@ class MagentoStream(RESTStream):
     def get_token(self):
         now = round(datetime.utcnow().timestamp())
         if not self.access_token:
-            s = requests.Session()
+            s = self.requests_session
             payload = {
                 "Content-Type": "application/json",
                 "username": self.config.get("username"),
