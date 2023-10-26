@@ -32,7 +32,7 @@ class StoresStream(MagentoStream):
 
     def get_child_context(self, record, context):
         return {
-            "store_id": record["id"],
+            "store_id": str(record["id"]), #We don't want default 0 store to be skipped
         }
 
     def get_next_page_token(self, response, previous_token):

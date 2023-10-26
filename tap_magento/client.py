@@ -171,10 +171,15 @@ class MagentoStream(RESTStream):
             params[
                 f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
             ] = "store_id"
-
-            params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
-            ] = self.config.get("store_id")
+            if self.config.get("fetch_all_stores"):
+                params[
+                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                ] = int(context.get("store_id"))
+                
+            elif self.config.get("store_id"):
+                params[
+                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                ] = self.config.get("store_id")
 
         return params
 
