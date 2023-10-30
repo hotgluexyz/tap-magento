@@ -26,9 +26,11 @@ class StoresStream(MagentoStream):
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
 
-        for response in super().parse_response(response):
-            if response["id"] == self.config.get("store_id", 0):
-                yield response
+        for resp in super().parse_response(response):
+            store_id = resp["id"] == self.config.get("store_id", 0)
+            store_code = resp["code"].lower() == self.config.get("store_id", "default")
+            if store_id or store_code:
+                yield resp
 
     def get_child_context(self, record, context):
         return {
