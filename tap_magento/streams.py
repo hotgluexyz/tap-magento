@@ -13,7 +13,7 @@ SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 class StoresStream(MagentoStream):
     name = "stores"
-    path = "/store/storeGroups"
+    path = "/store/storeConfigs"
     primary_keys = ["id"]
     records_jsonpath = "$.[*]"
 
