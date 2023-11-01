@@ -125,10 +125,15 @@ class MagentoStream(RESTStream):
                 current_page = json_data.get("search_criteria").get("current_page")
             else:
                 current_page = 1
-            if total_count > current_page * self.page_size:
+            page_size = self.page_size    
+            if self.name=="source_items":
+                page_size = self.get_source_items_page_size()
+
+            if total_count > current_page * page_size:
                 next_page_token = current_page + 1
         return next_page_token
-
+    def get_source_items_page_size(self):
+        return self.config.get("source_items_page_size",2000)
     def get_url_params(
         self, context, next_page_token
     ):
@@ -138,6 +143,9 @@ class MagentoStream(RESTStream):
             context = {}
 
         params["searchCriteria[pageSize]"] = self.page_size
+        if self.name == "source_items":
+            params["searchCriteria[pageSize]"] = self.get_source_items_page_size()
+
         if not next_page_token:
             params["searchCriteria[currentPage]"] = 1
         else:
@@ -224,3 +232,17 @@ class MagentoStream(RESTStream):
             factor=2,
         )(func)
         return decorator
+    
+    def _sync_records(  # noqa C901  # too complex
+        self, context: Optional[dict] = None
+    ) -> None:
+        if self.name == "source_items":
+            use_inventory_source_items = self.config.get("use_inventory_source_items",True)
+            if not use_inventory_source_items:
+                return []
+        #Skip product_item_stocks if use_item_stock is set to false
+        if self.name == "product_item_stocks":
+            use_item_stock = self.config.get("use_item_stock",True)
+            if not use_item_stock:
+                return []
+        super()._sync_records(context=context)
