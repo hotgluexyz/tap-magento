@@ -85,6 +85,25 @@ class OrdersStream(MagentoStream):
     primary_keys = []  # TODO
     replication_key = "updated_at"
 
+    def get_url_params(self, context, next_page_token):
+        """
+        Overwrites get_url_params to add support for order_ids filtering
+        """
+        params = super().get_url_params(context, next_page_token)
+        order_ids = [str(x) for x in self.config.get("order_ids")]
+        if order_ids:
+            params[
+                "searchCriteria[filterGroups][1][filters][0][field]"
+            ] = "entity_id"
+            params[
+                "searchCriteria[filterGroups][1][filters][0][value]"
+            ] = ",".join(order_ids)
+            params[
+                "searchCriteria[filterGroups][1][filters][0][condition_type]"
+            ] = "in"
+
+        return params
+
     schema = th.PropertiesList(
         th.Property("adjustment_negative", th.NumberType),
         th.Property("adjustment_positive", th.NumberType),
