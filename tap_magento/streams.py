@@ -44,6 +44,8 @@ class StoresStream(MagentoStream):
                 yield stores_by_id[store_id]
             elif isinstance(store_id, str):
                 yield stores_by_code[store_id]
+            else:
+                self.logger.info(f"Skipping store_id/store_code: {store_id}")
 
 
     def get_child_context(self, record, context):
@@ -90,8 +92,8 @@ class OrdersStream(MagentoStream):
         Overwrites get_url_params to add support for order_ids filtering
         """
         params = super().get_url_params(context, next_page_token)
-        order_ids = [str(x) for x in self.config.get("order_ids")]
-        if order_ids:
+        order_ids = [str(x) for x in self.config.get("order_ids", [])]
+        if len(order_ids) > 0:
             params[
                 "searchCriteria[filterGroups][0][filters][0][field]"
             ] = "entity_id"

@@ -176,17 +176,14 @@ class MagentoStream(RESTStream):
             # will fail.
             # More info on: https://github.com/magento/magento2/issues/15461
             params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+                f"searchCriteria[filterGroups][1][filters][{filter_idx}][field]"
             ] = "store_id"
-            if self.config.get("fetch_all_stores"):
-                params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
-                ] = int(context.get("store_id"))
-                
-            elif self.config.get("store_id"):
-                params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
-                ] = self.config.get("store_id")
+            params[
+                f"searchCriteria[filterGroups][1][filters][{filter_idx}][value]"
+            ] = context.get("store_id")
+            params[
+                f"searchCriteria[filterGroups][1][filters][{filter_idx}][condition_type]"
+            ] = "eq"
 
         return params
 
