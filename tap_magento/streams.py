@@ -93,13 +93,13 @@ class OrdersStream(MagentoStream):
         order_ids = [str(x) for x in self.config.get("order_ids")]
         if order_ids:
             params[
-                "searchCriteria[filterGroups][1][filters][0][field]"
+                "searchCriteria[filterGroups][0][filters][0][field]"
             ] = "entity_id"
             params[
-                "searchCriteria[filterGroups][1][filters][0][value]"
+                "searchCriteria[filterGroups][0][filters][0][value]"
             ] = ",".join(order_ids)
             params[
-                "searchCriteria[filterGroups][1][filters][0][condition_type]"
+                "searchCriteria[filterGroups][0][filters][0][condition_type]"
             ] = "in"
 
         return params
