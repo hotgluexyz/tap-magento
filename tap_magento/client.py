@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
 
 from datetime import datetime
+from simplejson.scanner import JSONDecodeError
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
@@ -132,7 +133,7 @@ class MagentoStream(RESTStream):
                 current_page = json_data.get("search_criteria").get("current_page")
             else:
                 current_page = 1
-            page_size = self.page_size    
+            page_size = self.page_size
             if self.name=="source_items":
                 page_size = self.get_source_items_page_size()
 
@@ -225,7 +226,13 @@ class MagentoStream(RESTStream):
         """Parse the response and return an iterator of result rows."""
         if response.status_code == 404 or response.status_code > 500:
             return []
-        yield from extract_jsonpath(self.records_jsonpath, input=response.json())
+
+        try:
+            response_content = response.json()
+        except JSONDecodeError:
+            raise Exception(f"Unable to decode response from {response.url} with content: {response.content}")
+
+        yield from extract_jsonpath(self.records_jsonpath, input=response_content)
 
     def request_decorator(self, func: Callable) -> Callable:
         """Instantiate a decorator for handling request failures."""
@@ -236,7 +243,7 @@ class MagentoStream(RESTStream):
             factor=2,
         )(func)
         return decorator
-    
+
     def _sync_records(  # noqa C901  # too complex
         self, context: Optional[dict] = None
     ) -> None:
