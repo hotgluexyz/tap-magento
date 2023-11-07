@@ -301,7 +301,8 @@ class ProductsStream(MagentoStream):
         """Return a context dictionary for child streams."""
         return {
             "product_sku": record["sku"],
-            "product_status": record["status"]
+            "product_status": record["status"],
+            "store_id": context["store_id"],
         }
 
 
@@ -409,6 +410,7 @@ class ProductItemStocksStream(MagentoStream):
         th.Property("item_id", th.NumberType),
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
+        th.Property("store_id", th.NumberType),
         th.Property("qty", th.NumberType),
         th.Property("is_in_stock", th.BooleanType),
         th.Property("is_qty_decimal", th.BooleanType),
@@ -434,7 +436,9 @@ class ProductItemStocksStream(MagentoStream):
         th.Property("stock_status_changed_auto", th.NumberType),
     ).to_dict()
 
-
+    def post_process(self, row, context):
+        row["store_id"] = context.get("store_id")
+        return row
 
 class ProductStockStatusesStream(MagentoStream):
     name = "product_stock_statuses"
@@ -446,6 +450,7 @@ class ProductStockStatusesStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
+        th.Property("store_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
         th.Property("stock_status", th.NumberType),
@@ -490,6 +495,7 @@ class ProductStockStatusesStream(MagentoStream):
         if context.get("product_status") == 2:
             return None
 
+        row["store_id"] = context.get("store_id")
         return row
 
 
