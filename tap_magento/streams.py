@@ -681,3 +681,15 @@ class StoreWebsitesStream(MagentoStream):
         th.Property("name", th.StringType),
         th.Property("default_group_id", th.NumberType),
     ).to_dict()
+class SourceItemsStream(MagentoStream):
+    name = "source_items"
+    path = "/inventory/source-items"
+    primary_keys = None
+    records_jsonpath: str = "$.items[*]"
+
+    schema = th.PropertiesList(
+        th.Property("sku", th.StringType),
+        th.Property("source_code", th.StringType),
+        th.Property("quantity", th.NumberType),
+        th.Property("status", th.NumberType),
+    ).to_dict()

@@ -20,7 +20,8 @@ from tap_magento.streams import (
     InvoicesStream,
     StoreConfigsStream,
     StoreWebsitesStream,
-    StoresStream
+    StoresStream,
+    SourceItemsStream
 )
 
 
@@ -38,7 +39,8 @@ STREAM_TYPES = [
     InvoicesStream,
     StoreConfigsStream,
     StoreWebsitesStream,
-    StoresStream
+    StoresStream,
+    SourceItemsStream
 ]
 
 
