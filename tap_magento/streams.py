@@ -22,7 +22,31 @@ class StoresStream(MagentoStream):
         th.Property("website_id", th.NumberType),
     ).to_dict()
 
+    def validate_response(self, response) -> None:
+        if response.status_code == 401:
+            return
+
+        return super().validate_response(response)
+
+    def fallback_response_for_401s(self, response):
+        if response.status_code != 401:
+            return response
+
+        self.logger.info("Missing permission on StoreConfigs/StoreGroups, falling back...")
+        if self.config.get("store_id"):
+            return [{"id": self.config.get("store_id")}]
+        else:
+            return [{"id": 1}]
+
     def parse_response(self, response):
+        response = self.fallback_response_for_401s(response)
+
+        if isinstance(response, list):
+            for item in response:
+                yield item
+
+            return
+
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
 
