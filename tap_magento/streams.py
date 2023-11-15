@@ -95,6 +95,7 @@ class OrdersStream(MagentoStream):
     primary_keys = []  # TODO
     replication_key = "updated_at"
     parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("adjustment_negative", th.NumberType),
@@ -204,7 +205,7 @@ class OrdersStream(MagentoStream):
         th.Property("state", th.StringType),
         th.Property("status", th.StringType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("store_name", th.StringType),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
@@ -248,11 +249,12 @@ class ProductsStream(MagentoStream):
     primary_keys = ["id"]
     replication_key = "updated_at"
     parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
@@ -426,7 +428,6 @@ class ProductItemStocksStream(MagentoStream):
     ).to_dict()
 
 
-
 class ProductStockStatusesStream(MagentoStream):
     name = "product_stock_statuses"
     path = "/stockStatuses/{product_sku}"
@@ -434,6 +435,7 @@ class ProductStockStatusesStream(MagentoStream):
     records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
@@ -573,6 +575,7 @@ class InvoicesStream(MagentoStream):
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
     parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("base_currency_code", th.StringType),
@@ -610,7 +613,7 @@ class InvoicesStream(MagentoStream):
         th.Property("shipping_tax_amount", th.NumberType),
         th.Property("state", th.NumberType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
         th.Property("subtotal", th.NumberType),
@@ -669,6 +672,8 @@ class StoreWebsitesStream(MagentoStream):
         th.Property("name", th.StringType),
         th.Property("default_group_id", th.NumberType),
     ).to_dict()
+
+
 class SourceItemsStream(MagentoStream):
     name = "source_items"
     path = "/inventory/source-items"
