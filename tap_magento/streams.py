@@ -239,12 +239,12 @@ class OrdersStream(MagentoStream):
         th.Property("updated_at", th.DateTimeType),
         th.Property("weight", th.NumberType),
         th.Property("x_forwarded_for", th.StringType),
-        th.Property("items", th.ArrayType(th.CustomType({"type": ["null", "object"]}))),
+        th.Property("items", th.ArrayType(th.CustomType({"type": ["string", "object"]}))),
         th.Property("billing_address", th.CustomType({"type": ["object", "string"]})),
         th.Property("payment", th.CustomType({"type": ["object", "string"]})),
         th.Property(
             "status_histories",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
@@ -262,7 +262,7 @@ class ProductsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
-        th.Property("store_id", th.IntegerType),
+        th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
@@ -277,23 +277,23 @@ class ProductsStream(MagentoStream):
         ),
         th.Property(
             "product_links",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "options",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "media_gallery_entries",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "tier_prices",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "custom_attributes",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
     ).to_dict()
 
