@@ -38,7 +38,7 @@ class MagentoStream(RESTStream):
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
-        return f"{store_url}/rest/V1"
+        return f"{store_url}/rest"
 
     @property
     def page_size(self) -> str:
@@ -174,25 +174,6 @@ class MagentoStream(RESTStream):
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
             params["order_by"] = self.replication_key
-
-        if context.get("store_id"):
-            filter_idx = 0
-            if self.replication_key:
-                filter_idx + 1
-
-            # This is just a workaround, magento doesn't support store_code very well.
-            # In 80% of the cases, this workaround should work, on some other cases it
-            # will fail.
-            # More info on: https://github.com/magento/magento2/issues/15461
-            params[
-                f"searchCriteria[filterGroups][1][filters][{filter_idx}][field]"
-            ] = "store_id"
-            params[
-                f"searchCriteria[filterGroups][1][filters][{filter_idx}][value]"
-            ] = context.get("store_id")
-            params[
-                f"searchCriteria[filterGroups][1][filters][{filter_idx}][condition_type]"
-            ] = "eq"
 
         return params
 
