@@ -258,6 +258,7 @@ class ProductsStream(MagentoStream):
     primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
     parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
@@ -639,9 +640,11 @@ class InvoicesStream(MagentoStream):
 
 class StoreConfigsStream(MagentoStream):
     name = "store_configs"
-    path = "/V1/store/storeConfigs"
+    path = "/{store_id}/V1/store/storeConfigs"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     def get_next_page_token(self, response, previous_token):
         return None
@@ -668,9 +671,11 @@ class StoreConfigsStream(MagentoStream):
 
 class StoreWebsitesStream(MagentoStream):
     name = "store_websites"
-    path = "/V1/store/websites"
+    path = "/{store_id}/V1/store/websites"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     def get_next_page_token(self, response, previous_token):
         return None
@@ -685,9 +690,11 @@ class StoreWebsitesStream(MagentoStream):
 
 class SourceItemsStream(MagentoStream):
     name = "source_items"
-    path = "/V1/inventory/source-items"
+    path = "/{store_id}/V1/inventory/source-items"
     primary_keys = None
     records_jsonpath: str = "$.items[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("sku", th.StringType),
