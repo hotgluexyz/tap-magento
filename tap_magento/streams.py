@@ -50,7 +50,8 @@ class StoresStream(MagentoStream):
 
     def get_child_context(self, record, context):
         return {
-            "store_id": str(record["code"]), #We don't want default 0 store to be skipped
+            "store_id": str(record["id"]),#We don't want default 0 store to be skipped
+            "store_code": str(record["code"]) 
         }
 
     def get_next_page_token(self, response, previous_token):
@@ -254,7 +255,7 @@ class OrdersStream(MagentoStream):
 
 class ProductsStream(MagentoStream):
     name = "products"
-    path = "/{store_id}/V1/products"
+    path = "/{store_code}/V1/products"
     primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
     parent_stream_type = StoresStream
@@ -304,6 +305,7 @@ class ProductsStream(MagentoStream):
             "product_sku": record["sku"],
             "product_status": record["status"],
             "store_id": context["store_id"],
+            "store_code": context["store_code"]
         }
 
 
@@ -400,7 +402,7 @@ class ProductAttributeDetailsStream(MagentoStream):
 
 class ProductItemStocksStream(MagentoStream):
     name = "product_item_stocks"
-    path = "/{store_id}/V1/stockItems/{product_sku}"
+    path = "/{store_code}/V1/stockItems/{product_sku}"
     primary_keys = ["item_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
@@ -443,7 +445,7 @@ class ProductItemStocksStream(MagentoStream):
 
 class ProductStockStatusesStream(MagentoStream):
     name = "product_stock_statuses"
-    path = "/{store_id}/V1/stockStatuses/{product_sku}"
+    path = "/{store_code}/V1/stockStatuses/{product_sku}"
     primary_keys = ["stock_id", "product_id"]
     records_jsonpath: str = "$.[*]"
     replication_key = None
@@ -640,7 +642,7 @@ class InvoicesStream(MagentoStream):
 
 class StoreConfigsStream(MagentoStream):
     name = "store_configs"
-    path = "/{store_id}/V1/store/storeConfigs"
+    path = "/{store_code}/V1/store/storeConfigs"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
     parent_stream_type = StoresStream
@@ -671,7 +673,7 @@ class StoreConfigsStream(MagentoStream):
 
 class StoreWebsitesStream(MagentoStream):
     name = "store_websites"
-    path = "/{store_id}/V1/store/websites"
+    path = "/{store_code}/V1/store/websites"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
     parent_stream_type = StoresStream
@@ -690,7 +692,7 @@ class StoreWebsitesStream(MagentoStream):
 
 class SourceItemsStream(MagentoStream):
     name = "source_items"
-    path = "/{store_id}/V1/inventory/source-items"
+    path = "/{store_code}/V1/inventory/source-items"
     primary_keys = None
     records_jsonpath: str = "$.items[*]"
     parent_stream_type = StoresStream
