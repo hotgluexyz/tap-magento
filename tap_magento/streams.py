@@ -264,7 +264,7 @@ class ProductsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.StringType),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
@@ -413,7 +413,7 @@ class ProductItemStocksStream(MagentoStream):
         th.Property("item_id", th.NumberType),
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.StringType),
         th.Property("qty", th.NumberType),
         th.Property("is_in_stock", th.BooleanType),
         th.Property("is_qty_decimal", th.BooleanType),
@@ -453,7 +453,7 @@ class ProductStockStatusesStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.StringType),
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
         th.Property("stock_status", th.NumberType),
