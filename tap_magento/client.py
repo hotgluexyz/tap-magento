@@ -161,9 +161,11 @@ class MagentoStream(RESTStream):
 
         if self.replication_key:
             start_date = self.get_starting_timestamp(context)
+            params["searchCriteria[sortOrders][0][field]"] = self.replication_key
+            params["searchCriteria[sortOrders][0][direction]"] = "ASC"
+
             if start_date is not None:
                 start_date = start_date.strftime("%Y-%m-%d")
-                params["sort"] = "asc"
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
@@ -173,7 +175,6 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
-            params["order_by"] = self.replication_key
 
         if context.get("store_id"):
             # This is just a workaround, magento doesn't support store_code very well.

@@ -1,4 +1,6 @@
 """Stream type classes for tap-magento."""
+import requests
+import pendulum
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
@@ -6,7 +8,6 @@ from typing import Any, Dict, Optional, Union, List, Iterable
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_magento.client import MagentoStream
-import requests
 
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
@@ -51,7 +52,7 @@ class StoresStream(MagentoStream):
     def get_child_context(self, record, context):
         return {
             "store_id": str(record["id"]),#We don't want default 0 store to be skipped
-            "store_code": str(record["code"]) 
+            "store_code": str(record["code"])
         }
 
     def get_next_page_token(self, response, previous_token):
@@ -87,6 +88,7 @@ class OrdersStream(MagentoStream):
     path = "/V1/orders"
     primary_keys = []  # TODO
     replication_key = "updated_at"
+    ids = []
 
     def get_url_params(self, context, next_page_token):
         """
@@ -251,6 +253,17 @@ class OrdersStream(MagentoStream):
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
         ),
     ).to_dict()
+
+    def parse_response(self, response):
+        max_date = max([pendulum.parse(x['updated_at']) for x in response.json()['items']])
+        self.logger.info(f"Max date: {max_date}")
+        return super().parse_response(response)
+        # for item in super().parse_response(response):
+        #     if item["entity_id"] not in self.ids:
+        #         self.ids.append(item["entity_id"])
+        #         yield item
+        #     else:
+        #         raise Exception("Duplicate order id found in response")
 
 
 class ProductsStream(MagentoStream):
