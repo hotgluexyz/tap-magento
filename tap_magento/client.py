@@ -165,7 +165,7 @@ class MagentoStream(RESTStream):
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
             if start_date is not None:
-                start_date = start_date.strftime("%Y-%m-%d")
+                start_date = start_date.strftime("%Y-%m-%d %H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
