@@ -3,6 +3,7 @@
 import backoff
 import logging
 import requests
+import pendulum
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
@@ -29,6 +30,7 @@ class MagentoStream(RESTStream):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._start_date = None
         if self.config.get("custom_cookies"):
             for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
                 self._requests_session.cookies[cookie] = cookie_value
@@ -124,8 +126,10 @@ class MagentoStream(RESTStream):
             )
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
+
         elif response.status_code in [404, 503]:
             return None
+
         else:
             json_data = response.json()
             total_count = json_data.get("total_count", 0)
@@ -137,11 +141,18 @@ class MagentoStream(RESTStream):
             if self.name=="source_items":
                 page_size = self.get_source_items_page_size()
 
-            if total_count > current_page * page_size:
+            is_next_page_below_401 = (current_page + 1) < 401
+            if total_count > current_page * page_size and is_next_page_below_401:
                 next_page_token = current_page + 1
+            else:
+                max_date = max([pendulum.parse(item.get(self.replication_key)) for item in response.json()["items"]])
+                return {"next_page_token": 1, "replication_key": max_date}
+
         return next_page_token
+
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -154,18 +165,25 @@ class MagentoStream(RESTStream):
         if self.name == "source_items":
             params["searchCriteria[pageSize]"] = self.get_source_items_page_size()
 
+        if isinstance(next_page_token, dict):
+            self._start_date = next_page_token.get("replication_key")
+            next_page_token = next_page_token.get("next_page_token")
+            self.logger.info("Reseting next_page_token to 1 and replication_key to {}".format(self._start_date))
+
         if not next_page_token:
-            params["searchCriteria[currentPage]"] = 1
+            params["searchCriteria[currentPage]"] = 399
         else:
             params["searchCriteria[currentPage]"] = next_page_token
 
         if self.replication_key:
-            start_date = self.get_starting_timestamp(context)
+            if self._start_date is None:
+                self._start_date = self.get_starting_timestamp(context)
+
             params["searchCriteria[sortOrders][0][field]"] = self.replication_key
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
-            if start_date is not None:
-                start_date = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            if self._start_date is not None:
+                start_date = self._start_date.strftime("%Y-%m-%d %H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
