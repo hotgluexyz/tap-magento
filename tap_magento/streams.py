@@ -717,3 +717,35 @@ class SourceItemsStream(MagentoStream):
         th.Property("quantity", th.NumberType),
         th.Property("status", th.NumberType),
     ).to_dict()
+
+
+class CartsStream(MagentoStream):
+    name = "carts"
+    path = "/carts/search"
+    primary_keys = ["id"]
+    records_jsonpath: str = "$.items[*]"
+
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("created_at", th.StringType),
+        th.Property("updated_at", th.StringType),
+        th.Property("converted_at", th.StringType),
+        th.Property("is_active", th.BooleanType),
+        th.Property("is_virtual", th.BooleanType),
+        th.Property("items_count", th.IntegerType),
+        th.Property("items_qty", th.IntegerType),
+        th.Property("customer", th.CustomType({"type": ["object"]})),
+        th.Property("billing_address", th.CustomType({"type": ["object"]})),
+        th.Property("reserved_order_id", th.StringType),
+        th.Property("orig_order_id", th.IntegerType),
+        th.Property("currency", th.CustomType({"type": ["object"]})),
+        th.Property("customer_is_guest", th.BooleanType),
+        th.Property("customer_note", th.StringType),
+        th.Property("customer_note_notify", th.BooleanType),
+        th.Property("customer_tax_class_id", th.IntegerType),
+        th.Property("store_id", th.IntegerType),
+        th.Property("extension_attributes", th.CustomType({"type": ["object"]})),
+    ).to_dict()
+
+    def parse_response(self, response):
+        return super().parse_response(response)
