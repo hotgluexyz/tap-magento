@@ -23,7 +23,31 @@ class StoresStream(MagentoStream):
         th.Property("website_id", th.NumberType),
     ).to_dict()
 
+    def validate_response(self, response) -> None:
+        if response.status_code == 401:
+            return
+
+        return super().validate_response(response)
+
+    def fallback_response_for_401s(self, response):
+        if response.status_code != 401:
+            return response
+
+        self.logger.info("Missing permission on StoreConfigs/StoreGroups, falling back...")
+        if self.config.get("store_id"):
+            return [{"id": self.config.get("store_id")}]
+        else:
+            return [{"id": 1}]
+
     def parse_response(self, response):
+        response = self.fallback_response_for_401s(response)
+
+        if isinstance(response, list):
+            for item in response:
+                yield item
+
+            return
+
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
 
@@ -89,6 +113,8 @@ class OrdersStream(MagentoStream):
     primary_keys = []  # TODO
     replication_key = "updated_at"
     ids = []
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     def get_url_params(self, context, next_page_token):
         """
@@ -217,7 +243,7 @@ class OrdersStream(MagentoStream):
         th.Property("state", th.StringType),
         th.Property("status", th.StringType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("store_name", th.StringType),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
@@ -284,7 +310,7 @@ class ProductsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
-        th.Property("store_id", th.StringType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
@@ -470,6 +496,7 @@ class ProductStockStatusesStream(MagentoStream):
     records_jsonpath: str = "$.[*]"
     replication_key = None
     parent_stream_type = ProductsStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
@@ -608,6 +635,8 @@ class InvoicesStream(MagentoStream):
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("base_currency_code", th.StringType),
@@ -645,7 +674,7 @@ class InvoicesStream(MagentoStream):
         th.Property("shipping_tax_amount", th.NumberType),
         th.Property("state", th.NumberType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.NumberType),
+        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
         th.Property("subtotal", th.NumberType),
@@ -724,3 +753,35 @@ class SourceItemsStream(MagentoStream):
         th.Property("quantity", th.NumberType),
         th.Property("status", th.NumberType),
     ).to_dict()
+
+
+class CartsStream(MagentoStream):
+    name = "carts"
+    path = "/carts/search"
+    primary_keys = ["id"]
+    records_jsonpath: str = "$.items[*]"
+
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("created_at", th.StringType),
+        th.Property("updated_at", th.StringType),
+        th.Property("converted_at", th.StringType),
+        th.Property("is_active", th.BooleanType),
+        th.Property("is_virtual", th.BooleanType),
+        th.Property("items_count", th.IntegerType),
+        th.Property("items_qty", th.IntegerType),
+        th.Property("customer", th.CustomType({"type": ["object"]})),
+        th.Property("billing_address", th.CustomType({"type": ["object"]})),
+        th.Property("reserved_order_id", th.StringType),
+        th.Property("orig_order_id", th.IntegerType),
+        th.Property("currency", th.CustomType({"type": ["object"]})),
+        th.Property("customer_is_guest", th.BooleanType),
+        th.Property("customer_note", th.StringType),
+        th.Property("customer_note_notify", th.BooleanType),
+        th.Property("customer_tax_class_id", th.IntegerType),
+        th.Property("store_id", th.IntegerType),
+        th.Property("extension_attributes", th.CustomType({"type": ["object"]})),
+    ).to_dict()
+
+    def parse_response(self, response):
+        return super().parse_response(response)
