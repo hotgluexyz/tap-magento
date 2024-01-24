@@ -259,9 +259,4 @@ class MagentoStream(RESTStream):
             use_item_stock = self.config.get("use_item_stock",True)
             if not use_item_stock:
                 return []
-        #Skip product_stock_statuses if use_stock_statuses is set to false
-        if self.name == "product_stock_statuses":
-            use_stock_statuses = self.config.get("use_stock_statuses",True)
-            if not use_stock_statuses:
-                return []
         super()._sync_records(context=context)
