@@ -14,7 +14,7 @@ SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 class StoresStream(MagentoStream):
     name = "stores"
-    path = "/V1/store/storeConfigs"
+    path = "store/storeGroups"
     primary_keys = ["id"]
     records_jsonpath = "$.[*]"
 
@@ -51,32 +51,15 @@ class StoresStream(MagentoStream):
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
 
-        resps = list(super().parse_response(response))
-
-        stores_by_id = {resp["id"]: resp for resp in resps}
-        stores_by_code = {resp["code"]: resp for resp in resps}
-
-        store_ids = self.config.get("store_id", [])
-
-        if isinstance(store_ids, str):
-            store_ids = store_ids.replace(" ", "").split(",")
-            store_ids = [
-                store_id if not store_id.isdigit() else int(store_id) for store_id in store_ids
-            ]
-
-        for store_id in store_ids:
-            if isinstance(store_id, int):
-                yield stores_by_id[store_id]
-            elif isinstance(store_id, str):
-                yield stores_by_code[store_id]
-            else:
-                self.logger.info(f"Skipping store_id/store_code: {store_id}")
-
+        for resp in super().parse_response(response):
+            store_id = resp["id"] == self.config.get("store_id", 0)
+            store_code = resp["code"].lower() == self.config.get("store_id", "default")
+            if store_id or store_code:
+                yield resp
 
     def get_child_context(self, record, context):
         return {
-            "store_id": str(record["id"]),#We don't want default 0 store to be skipped
-            "store_code": str(record["code"])
+            "store_id": str(record["id"]), #We don't want default 0 store to be skipped
         }
 
     def get_next_page_token(self, response, previous_token):
@@ -87,7 +70,7 @@ class UsersStream(MagentoStream):
     """Define custom stream."""
 
     name = "users"
-    path = "/V1/users"
+    path = "users"
     primary_keys = ["id"]
     replication_key = None
 
@@ -109,7 +92,7 @@ class OrdersStream(MagentoStream):
     """Define Order Stream"""
 
     name = "orders"
-    path = "/V1/orders"
+    path = "orders"
     primary_keys = []  # TODO
     replication_key = "updated_at"
     ids = []
@@ -357,7 +340,7 @@ class ProductsStream(MagentoStream):
 
 class ProductAttributesStream(MagentoStream):
     name = "product_attributes"
-    path = "/V1/products/attributes"
+    path = "products/attributes"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
@@ -405,7 +388,7 @@ class ProductAttributesStream(MagentoStream):
 
 class ProductAttributeDetailsStream(MagentoStream):
     name = "product_attribute_details"
-    path = "/V1/products/attributes/{attribute_code}"
+    path = "products/attributes/{attribute_code}"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
@@ -551,7 +534,7 @@ class ProductStockStatusesStream(MagentoStream):
 
 class CategoryStream(MagentoStream):
     name = "categories"
-    path = "/V1/categories/list"
+    path = "categories/list"
     primary_keys = ["id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
@@ -575,7 +558,7 @@ class CategoryStream(MagentoStream):
 
 class SaleRulesStream(MagentoStream):
     name = "salerules"
-    path = "/V1/salesRules/search"
+    path = "salesRules/search"
     primary_keys = ["rule_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
@@ -613,7 +596,7 @@ class SaleRulesStream(MagentoStream):
 
 class CouponsStream(MagentoStream):
     name = "coupons"
-    path = "/V1/coupons/search"
+    path = "coupons/search"
     primary_keys = ["coupon_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
@@ -631,7 +614,7 @@ class CouponsStream(MagentoStream):
 
 class InvoicesStream(MagentoStream):
     name = "invoices"
-    path = "/V1/invoices"
+    path = "invoices"
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
