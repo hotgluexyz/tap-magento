@@ -281,14 +281,7 @@ class OrdersStream(MagentoStream):
     ).to_dict()
 
     def parse_response(self, response):
-        try:
-            response_json = response.json()
-        except requests.exceptions.JSONDecodeError:
-            self.logger.info("JSON decoding failed, response content:")
-            self.logger.info(response.text)
-            self.logger.error(f"We may have a bad API URL. Please check your config. Current URL: {self.config.get('store_url')}, Request URL: {response.url}")
-            raise
-        max_date = max([pendulum.parse(x['updated_at']) for x in response_json['items']])
+        max_date = max([pendulum.parse(x['updated_at']) for x in response.json()['items']])
         self.logger.info(f"Max date: {max_date}")
 
         for item in super().parse_response(response):
