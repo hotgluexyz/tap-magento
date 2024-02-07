@@ -255,8 +255,10 @@ class OrdersStream(MagentoStream):
     ).to_dict()
 
     def parse_response(self, response):
-        max_date = max([pendulum.parse(x['updated_at']) for x in response.json()['items']])
-        self.logger.info(f"Max date: {max_date}")
+        items = response.json()['items']
+        if items:
+            max_date = max(pendulum.parse(x['updated_at']) for x in items)
+            self.logger.info(f"Max date: {max_date}")
 
         for item in super().parse_response(response):
             if item["entity_id"] in self.ids:
