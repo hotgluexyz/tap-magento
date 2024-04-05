@@ -723,7 +723,7 @@ class SourceItemsStream(MagentoStream):
 
 class CartsStream(MagentoStream):
     name = "carts"
-    path = "/carts/search"
+    path = "/V1/carts/search"
     primary_keys = ["id"]
     records_jsonpath: str = "$.items[*]"
 
