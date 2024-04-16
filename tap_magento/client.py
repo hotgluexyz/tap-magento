@@ -16,9 +16,11 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
 from requests_oauthlib import OAuth1
+from urllib3.exceptions import ProtocolError, InvalidChunkLength
 
 
-logging.getLogger("backoff").setLevel(logging.CRITICAL)
+
+# logging.getLogger("backoff").setLevel(logging.CRITICAL)
 
 
 class MagentoStream(RESTStream):
@@ -241,7 +243,7 @@ class MagentoStream(RESTStream):
         """Instantiate a decorator for handling request failures."""
         decorator: Callable = backoff.on_exception(
             backoff.expo,
-            (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError, ConnectionResetError),
+            (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError, ConnectionResetError,ProtocolError,InvalidChunkLength,requests.RequestException),
             max_tries=8,
             factor=2,
         )(func)
