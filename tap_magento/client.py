@@ -17,11 +17,14 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
 from requests_oauthlib import OAuth1
 from urllib3.exceptions import ProtocolError, InvalidChunkLength
-
+import time
 
 
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
-
+def handle_backoff(details):
+    if details["tries"]==1:
+        print("Sleeping for 30 seconds")
+        time.sleep(30)
 
 class MagentoStream(RESTStream):
     """Magento stream class."""
@@ -203,6 +206,14 @@ class MagentoStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
+        if self.config.get("crawl_delay"):
+            delay = 0
+            try:
+                delay = int(self.config.get("crawl_delay"))
+            except ValueError:
+                pass
+            if delay >0:
+                time.sleep(delay)
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
 
@@ -245,7 +256,8 @@ class MagentoStream(RESTStream):
             backoff.expo,
             (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError, ConnectionResetError,ProtocolError,InvalidChunkLength,requests.RequestException),
             max_tries=8,
-            factor=2,
+            factor=5,
+            on_backoff=handle_backoff
         )(func)
         return decorator
 
