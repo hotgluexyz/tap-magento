@@ -15,6 +15,8 @@ from singer_sdk.helpers.jsonpath import extract_jsonpath
 
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
 from requests_oauthlib import OAuth1
+from random_user_agent.user_agent import UserAgent
+from random_user_agent.params import SoftwareName, OperatingSystem, Popularity
 
 
 logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -25,6 +27,10 @@ class MagentoStream(RESTStream):
 
     access_token = None
     expires_in = None
+    software_names = [SoftwareName.FIREFOX.value]
+    operating_systems = [OperatingSystem.WINDOWS.value, OperatingSystem.MAC.value]
+    popularity = [Popularity.POPULAR.value]
+    user_agents = UserAgent(software_names=software_names, operating_systems=operating_systems, popularity = popularity, limit=100)
 
     @property
     def url_base(self) -> str:
@@ -101,7 +107,9 @@ class MagentoStream(RESTStream):
         headers = {
             "Content-Type": "application/json",
         }
-        if "user_agent" in self.config:
+        if not self.config.get("user_agent"):
+            headers["User-Agent"] = self.user_agents.get_random_user_agent()
+        else:
             headers["User-Agent"] = self.config.get("user_agent")
         return headers
 

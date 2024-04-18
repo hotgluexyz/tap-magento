@@ -716,3 +716,37 @@ class CartsStream(MagentoStream):
 
     def parse_response(self, response):
         return super().parse_response(response)
+class StoreViewsStream(MagentoStream):
+    name = "store_views"
+    path = "/store/storeViews"
+    primary_keys = ["id"]
+    records_jsonpath = "$.[*]"
+
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("code", th.StringType),
+        th.Property("name", th.StringType),
+        th.Property("website_id", th.IntegerType),
+        th.Property("store_group_id", th.IntegerType),
+        th.Property("is_active", th.IntegerType),
+        th.Property("extension_attributes", th.CustomType({"type": ["object", "string"]})),
+    ).to_dict()
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        """Return a token for identifying next page or None if no more pages."""
+        #There seems to no support for pagination param.
+        return None
+class InventoryStocksStream(MagentoStream):
+    name = "inventory_stocks"
+    path = "/inventory/stocks"
+    primary_keys = ["stock_id"]
+
+    schema = th.PropertiesList(
+        th.Property("stock_id", th.IntegerType),
+        th.Property("name", th.StringType),
+        th.Property("extension_attributes", th.CustomType({"type": ["object", "string"]})),
+    ).to_dict()
+
+   
