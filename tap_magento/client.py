@@ -23,7 +23,6 @@ import time
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
 def handle_backoff(details):
     if details["tries"]==1:
-        print("Sleeping for 30 seconds")
         time.sleep(30)
 
 class MagentoStream(RESTStream):
