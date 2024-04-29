@@ -18,6 +18,7 @@ from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
 from requests_oauthlib import OAuth1
 from urllib3.exceptions import ProtocolError, InvalidChunkLength
 import time
+from pendulum import parse
 
 
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -179,6 +180,24 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
+                
+                # end date
+                end_date = self.config.get("end_date")
+                if end_date:
+                    try:
+                        end_date = parse(end_date).strftime("%Y-%m-%d %H:%M:%S")
+                        params[
+                            "searchCriteria[filterGroups][1][filters][0][field]"
+                        ] = self.replication_key
+                        params[
+                            "searchCriteria[filterGroups][1][filters][0][value]"
+                        ] = end_date
+                        params[
+                            "searchCriteria[filterGroups][1][filters][0][condition_type]"
+                        ] = "lteq"
+                    except:
+                        self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
+
 
         if context.get("store_id"):
             # This is just a workaround, magento doesn't support store_code very well.
@@ -254,7 +273,7 @@ class MagentoStream(RESTStream):
         decorator: Callable = backoff.on_exception(
             backoff.expo,
             (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError, ConnectionResetError,ProtocolError,InvalidChunkLength,requests.RequestException),
-            max_tries=8,
+            max_tries=12,
             factor=5,
             on_backoff=handle_backoff
         )(func)
