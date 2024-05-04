@@ -1,4 +1,6 @@
 """Stream type classes for tap-magento."""
+import requests
+import pendulum
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
@@ -6,14 +8,13 @@ from typing import Any, Dict, Optional, Union, List, Iterable
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_magento.client import MagentoStream
-import requests
 
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 
 class StoresStream(MagentoStream):
     name = "stores"
-    path = "/store/storeGroups"
+    path = "/V1/store/storeConfigs"
     primary_keys = ["id"]
     records_jsonpath = "$.[*]"
 
@@ -50,15 +51,32 @@ class StoresStream(MagentoStream):
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
 
-        for resp in super().parse_response(response):
-            store_id = resp["id"] == self.config.get("store_id", 0)
-            store_code = resp["code"].lower() == self.config.get("store_id", "default")
-            if store_id or store_code:
-                yield resp
+        resps = list(super().parse_response(response))
+
+        stores_by_id = {resp["id"]: resp for resp in resps}
+        stores_by_code = {resp["code"]: resp for resp in resps}
+
+        store_ids = self.config.get("store_id", [])
+
+        if isinstance(store_ids, str):
+            store_ids = store_ids.replace(" ", "").split(",")
+            store_ids = [
+                store_id if not store_id.isdigit() else int(store_id) for store_id in store_ids
+            ]
+
+        for store_id in store_ids:
+            if isinstance(store_id, int):
+                yield stores_by_id[store_id]
+            elif isinstance(store_id, str):
+                yield stores_by_code[store_id]
+            else:
+                self.logger.info(f"Skipping store_id/store_code: {store_id}")
+
 
     def get_child_context(self, record, context):
         return {
-            "store_id": str(record["id"]), #We don't want default 0 store to be skipped
+            "store_id": str(record["id"]),#We don't want default 0 store to be skipped
+            "store_code": str(record["code"])
         }
 
     def get_next_page_token(self, response, previous_token):
@@ -69,7 +87,7 @@ class UsersStream(MagentoStream):
     """Define custom stream."""
 
     name = "users"
-    path = "/users"
+    path = "/V1/users"
     primary_keys = ["id"]
     replication_key = None
 
@@ -91,11 +109,31 @@ class OrdersStream(MagentoStream):
     """Define Order Stream"""
 
     name = "orders"
-    path = "/orders"
+    path = "/V1/orders"
     primary_keys = []  # TODO
     replication_key = "updated_at"
     parent_stream_type = StoresStream
     ignore_parent_replication_key = True
+    ids = []
+
+    def get_url_params(self, context, next_page_token):
+        """
+        Overwrites get_url_params to add support for order_ids filtering
+        """
+        params = super().get_url_params(context, next_page_token)
+        order_ids = [str(x) for x in self.config.get("order_ids", [])]
+        if len(order_ids) > 0:
+            params[
+                "searchCriteria[filterGroups][0][filters][0][field]"
+            ] = "entity_id"
+            params[
+                "searchCriteria[filterGroups][0][filters][0][value]"
+            ] = ",".join(order_ids)
+            params[
+                "searchCriteria[filterGroups][0][filters][0][condition_type]"
+            ] = "in"
+
+        return params
 
     schema = th.PropertiesList(
         th.Property("adjustment_negative", th.NumberType),
@@ -230,12 +268,12 @@ class OrdersStream(MagentoStream):
         th.Property("updated_at", th.DateTimeType),
         th.Property("weight", th.NumberType),
         th.Property("x_forwarded_for", th.StringType),
-        th.Property("items", th.ArrayType(th.CustomType({"type": ["null", "object"]}))),
+        th.Property("items", th.ArrayType(th.CustomType({"type": ["string", "object"]}))),
         th.Property("billing_address", th.CustomType({"type": ["object", "string"]})),
         th.Property("payment", th.CustomType({"type": ["object", "string"]})),
         th.Property(
             "status_histories",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
@@ -245,8 +283,8 @@ class OrdersStream(MagentoStream):
 
 class ProductsStream(MagentoStream):
     name = "products"
-    path = "/products"
-    primary_keys = ["id"]
+    path = "/{store_code}/V1/products"
+    primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
     parent_stream_type = StoresStream
     ignore_parent_replication_key = True
@@ -269,23 +307,23 @@ class ProductsStream(MagentoStream):
         ),
         th.Property(
             "product_links",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "options",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "media_gallery_entries",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "tier_prices",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
         th.Property(
             "custom_attributes",
-            th.ArrayType(th.CustomType({"type": ["null", "object"]})),
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
         ),
     ).to_dict()
 
@@ -293,17 +331,18 @@ class ProductsStream(MagentoStream):
         """Return a context dictionary for child streams."""
         return {
             "product_sku": record["sku"],
-            "product_status": record["status"]
+            "product_status": record["status"],
+            "store_id": context["store_id"],
+            "store_code": context["store_code"]
         }
 
 
 class ProductAttributesStream(MagentoStream):
     name = "product_attributes"
-    path = "/products/attributes"
+    path = "/V1/products/attributes"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("attribute_id", th.NumberType),
@@ -348,7 +387,7 @@ class ProductAttributesStream(MagentoStream):
 
 class ProductAttributeDetailsStream(MagentoStream):
     name = "product_attribute_details"
-    path = "/products/attributes/{attribute_code}"
+    path = "/V1/products/attributes/{attribute_code}"
     primary_keys = ["attribute_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
@@ -391,7 +430,7 @@ class ProductAttributeDetailsStream(MagentoStream):
 
 class ProductItemStocksStream(MagentoStream):
     name = "product_item_stocks"
-    path = "/stockItems/{product_sku}"
+    path = "/{store_code}/V1/stockItems/{product_sku}"
     primary_keys = ["item_id"]
     records_jsonpath: str = "$[*]"
     replication_key = None
@@ -402,6 +441,7 @@ class ProductItemStocksStream(MagentoStream):
         th.Property("item_id", th.NumberType),
         th.Property("product_id", th.NumberType),
         th.Property("stock_id", th.NumberType),
+        th.Property("store_id", th.StringType),
         th.Property("qty", th.NumberType),
         th.Property("is_in_stock", th.BooleanType),
         th.Property("is_qty_decimal", th.BooleanType),
@@ -427,10 +467,13 @@ class ProductItemStocksStream(MagentoStream):
         th.Property("stock_status_changed_auto", th.NumberType),
     ).to_dict()
 
+    def post_process(self, row, context):
+        row["store_id"] = context.get("store_id")
+        return row
 
 class ProductStockStatusesStream(MagentoStream):
     name = "product_stock_statuses"
-    path = "/stockStatuses/{product_sku}"
+    path = "/{store_code}/V1/stockStatuses/{product_sku}"
     primary_keys = ["stock_id", "product_id"]
     records_jsonpath: str = "$.[*]"
     replication_key = None
@@ -439,6 +482,7 @@ class ProductStockStatusesStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("product_id", th.NumberType),
+        th.Property("store_id", th.StringType),
         th.Property("stock_id", th.NumberType),
         th.Property("qty", th.NumberType),
         th.Property("stock_status", th.NumberType),
@@ -483,12 +527,13 @@ class ProductStockStatusesStream(MagentoStream):
         if context.get("product_status") == 2:
             return None
 
+        row["store_id"] = context.get("store_id")
         return row
 
 
 class CategoryStream(MagentoStream):
     name = "categories"
-    path = "/categories/list"
+    path = "/V1/categories/list"
     primary_keys = ["id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
@@ -512,11 +557,10 @@ class CategoryStream(MagentoStream):
 
 class SaleRulesStream(MagentoStream):
     name = "salerules"
-    path = "/salesRules/search"
+    path = "/V1/salesRules/search"
     primary_keys = ["rule_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("rule_id", th.NumberType),
@@ -551,11 +595,10 @@ class SaleRulesStream(MagentoStream):
 
 class CouponsStream(MagentoStream):
     name = "coupons"
-    path = "/coupons/search"
+    path = "/V1/coupons/search"
     primary_keys = ["coupon_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = None
-    parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
         th.Property("coupon_id", th.NumberType),
@@ -570,7 +613,7 @@ class CouponsStream(MagentoStream):
 
 class InvoicesStream(MagentoStream):
     name = "invoices"
-    path = "/invoices"
+    path = "/V1/invoices"
     primary_keys = ["increment_id"]
     records_jsonpath: str = "$.items[*]"
     replication_key = "updated_at"
@@ -630,9 +673,11 @@ class InvoicesStream(MagentoStream):
 
 class StoreConfigsStream(MagentoStream):
     name = "store_configs"
-    path = "/store/storeConfigs"
+    path = "/{store_code}/V1/store/storeConfigs"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     def get_next_page_token(self, response, previous_token):
         return None
@@ -659,9 +704,11 @@ class StoreConfigsStream(MagentoStream):
 
 class StoreWebsitesStream(MagentoStream):
     name = "store_websites"
-    path = "/store/websites"
+    path = "/{store_code}/V1/store/websites"
     primary_keys = ["id"]
     records_jsonpath: str = "$.[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     def get_next_page_token(self, response, previous_token):
         return None
@@ -676,9 +723,11 @@ class StoreWebsitesStream(MagentoStream):
 
 class SourceItemsStream(MagentoStream):
     name = "source_items"
-    path = "/inventory/source-items"
+    path = "/{store_code}/V1/inventory/source-items"
     primary_keys = None
     records_jsonpath: str = "$.items[*]"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("sku", th.StringType),

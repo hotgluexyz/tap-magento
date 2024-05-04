@@ -3,11 +3,13 @@
 import backoff
 import logging
 import requests
+import pendulum
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
 
 from datetime import datetime
+from simplejson.scanner import JSONDecodeError
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
@@ -32,12 +34,20 @@ class MagentoStream(RESTStream):
     popularity = [Popularity.POPULAR.value]
     user_agents = UserAgent(software_names=software_names, operating_systems=operating_systems, popularity = popularity, limit=100)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._start_date = None
+        if self.config.get("custom_cookies"):
+            for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
+                self._requests_session.cookies[cookie] = cookie_value
+
+
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
-        return f"{store_url}/rest/V1"
-    
+        return f"{store_url}/rest"
+
     @property
     def page_size(self) -> str:
         """Return the API URL root, configurable via tap settings."""
@@ -49,7 +59,7 @@ class MagentoStream(RESTStream):
     def get_token(self):
         now = round(datetime.utcnow().timestamp())
         if not self.access_token:
-            s = requests.Session()
+            s = self.requests_session
             payload = {
                 "Content-Type": "application/json",
                 "username": self.config.get("username"),
@@ -74,7 +84,7 @@ class MagentoStream(RESTStream):
             self.access_token = login.json()
 
         return self.access_token
-        
+
     @property
     def authenticator(self) -> BearerTokenAuthenticator:
         """Return a new authenticator object."""
@@ -97,7 +107,7 @@ class MagentoStream(RESTStream):
                 signature_type="auth_header",
                 signature_method=SIGNATURE_HMAC_SHA256
             )
-        
+
         return request
 
 
@@ -124,8 +134,10 @@ class MagentoStream(RESTStream):
             )
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
+
         elif response.status_code in [404, 503]:
             return None
+
         else:
             json_data = response.json()
             total_count = json_data.get("total_count", 0)
@@ -133,15 +145,22 @@ class MagentoStream(RESTStream):
                 current_page = json_data.get("search_criteria").get("current_page")
             else:
                 current_page = 1
-            page_size = self.page_size    
+            page_size = self.page_size
             if self.name=="source_items":
                 page_size = self.get_source_items_page_size()
 
-            if total_count > current_page * page_size:
+            is_next_page_below_401 = (current_page + 1) < 401
+            if total_count > current_page * page_size and is_next_page_below_401:
                 next_page_token = current_page + 1
+            else:
+                max_date = max([pendulum.parse(item.get(self.replication_key)) for item in response.json()["items"]])
+                return {"next_page_token": 1, "replication_key": max_date}
+
         return next_page_token
+
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -154,16 +173,25 @@ class MagentoStream(RESTStream):
         if self.name == "source_items":
             params["searchCriteria[pageSize]"] = self.get_source_items_page_size()
 
+        if isinstance(next_page_token, dict):
+            self._start_date = next_page_token.get("replication_key")
+            next_page_token = next_page_token.get("next_page_token")
+            self.logger.info("Reseting next_page_token to 1 and replication_key to {}".format(self._start_date))
+
         if not next_page_token:
-            params["searchCriteria[currentPage]"] = 1
+            params["searchCriteria[currentPage]"] = 399
         else:
             params["searchCriteria[currentPage]"] = next_page_token
 
         if self.replication_key:
-            start_date = self.get_starting_timestamp(context)
-            if start_date is not None:
-                start_date = start_date.strftime("%Y-%m-%d %H:%M:%S")
-                params["sort"] = "asc"
+            if self._start_date is None:
+                self._start_date = self.get_starting_timestamp(context)
+
+            params["searchCriteria[sortOrders][0][field]"] = self.replication_key
+            params["searchCriteria[sortOrders][0][direction]"] = "ASC"
+
+            if self._start_date is not None:
+                start_date = self._start_date.strftime("%Y-%m-%d %H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
@@ -173,31 +201,26 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
-            params["order_by"] = self.replication_key
-        
+
         if context.get("store_id"):
-            filter_idx = 0
-            if self.replication_key:
-                filter_idx + 1
-            
             # This is just a workaround, magento doesn't support store_code very well.
             # In 80% of the cases, this workaround should work, on some other cases it
             # will fail.
             # More info on: https://github.com/magento/magento2/issues/15461
             if self.config.get("fetch_all_stores"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+                f"searchCriteria[filterGroups][0][filters][1][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                    f"searchCriteria[filterGroups][0][filters][1][value]"
                 ] = int(context.get("store_id"))
-                
+
             elif self.config.get("store_id"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+                f"searchCriteria[filterGroups][0][filters][1][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                    f"searchCriteria[filterGroups][0][filters][1][value]"
                 ] = self.config.get("store_id")
 
         return params
@@ -206,7 +229,7 @@ class MagentoStream(RESTStream):
         """Validate HTTP response."""
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
-        
+
         if response.status_code in [404, 503]:
             self.logger.info("Response status code: {} - Endpoint skipped".format(response.status_code))
             if response.status_code == 503:
@@ -232,18 +255,24 @@ class MagentoStream(RESTStream):
         """Parse the response and return an iterator of result rows."""
         if response.status_code == 404 or response.status_code > 500:
             return []
-        yield from extract_jsonpath(self.records_jsonpath, input=response.json())
+
+        try:
+            response_content = response.json()
+        except JSONDecodeError:
+            raise Exception(f"Unable to decode response from {response.url} with content: {response.content}")
+
+        yield from extract_jsonpath(self.records_jsonpath, input=response_content)
 
     def request_decorator(self, func: Callable) -> Callable:
         """Instantiate a decorator for handling request failures."""
         decorator: Callable = backoff.on_exception(
             backoff.expo,
-            (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError),
+            (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError, ConnectionResetError),
             max_tries=8,
             factor=2,
         )(func)
         return decorator
-    
+
     def _sync_records(  # noqa C901  # too complex
         self, context: Optional[dict] = None
     ) -> None:
