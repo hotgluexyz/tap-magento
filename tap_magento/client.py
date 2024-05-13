@@ -199,7 +199,11 @@ class MagentoStream(RESTStream):
                         self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
 
 
-        if context.get("store_id"):
+        if (
+            (context.get("store_id")
+            and self.config.get("fetch_all_stores"))
+            or self.config.get("store_id")
+        ):
             # This is just a workaround, magento doesn't support store_code very well.
             # In 80% of the cases, this workaround should work, on some other cases it
             # will fail.

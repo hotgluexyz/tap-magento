@@ -28,22 +28,27 @@ class StoresStream(MagentoStream):
             yield from super().parse_response(response)
 
         resps = list(super().parse_response(response))
-
+        store_ids_all = [] #initialize all store ids
         stores_by_id = {resp["id"]: resp for resp in resps}
         stores_by_code = {resp["code"]: resp for resp in resps}
+        
 
         store_ids = self.config.get("store_id", [])
 
-        if isinstance(store_ids, str):
+        if isinstance(store_ids, str) and store_ids:
             store_ids = store_ids.replace(" ", "").split(",")
             store_ids = [
                 store_id if not store_id.isdigit() else int(store_id) for store_id in store_ids
             ]
+        #In case store_id is an empty list or None. Populate with all stores
+        if not store_ids:
+            store_ids_all = list(stores_by_id.keys())
+            store_ids = store_ids_all
 
         for store_id in store_ids:
-            if isinstance(store_id, int):
+            if isinstance(store_id, int) and store_id and store_id in stores_by_id:
                 yield stores_by_id[store_id]
-            elif isinstance(store_id, str):
+            elif isinstance(store_id, str) and store_id and store_id in stores_by_id:
                 yield stores_by_code[store_id]
             else:
                 self.logger.info(f"Skipping store_id/store_code: {store_id}")
@@ -280,6 +285,7 @@ class ProductsStream(MagentoStream):
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
         th.Property("store_id", th.StringType),
+        th.Property("store_code", th.StringType),
         th.Property("name", th.StringType),
         th.Property("attribute_set_id", th.NumberType),
         th.Property("price", th.NumberType),
