@@ -260,17 +260,22 @@ class OrdersStream(MagentoStream):
     ).to_dict()
 
     def parse_response(self, response):
-        items = response.json()['items']
-        if items:
-            max_date = max(pendulum.parse(x['updated_at']) for x in items)
-            self.logger.info(f"Max date: {max_date}")
+        try:
+            items = response.json()['items']
+            if items:
+                max_date = max(pendulum.parse(x['updated_at']) for x in items)
+                self.logger.info(f"Max date: {max_date}")
 
-        for item in super().parse_response(response):
-            if item["entity_id"] in self.ids:
-                continue
+            for item in super().parse_response(response):
+                if item["entity_id"] in self.ids:
+                    continue
 
-            self.ids.append(item["entity_id"])
-            yield item
+                self.ids.append(item["entity_id"])
+                yield item
+        except:
+            #Unable to parse the response. Log and then skip this page.
+            self.logger.warn(f'Could not parse following response. {response.text}. {response.request.url} Skipping...')
+            return []
 
 
 class ProductsStream(MagentoStream):
