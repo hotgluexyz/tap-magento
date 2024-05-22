@@ -19,7 +19,7 @@ class StoresStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
-        th.Property("website_id", th.NumberType),
+        th.Property("website_id", th.IntegerType),
     ).to_dict()
 
     def validate_response(self, response) -> None:
@@ -141,7 +141,7 @@ class OrdersStream(MagentoStream):
         th.Property("base_total_refunded", th.NumberType),
         th.Property("base_to_global_rate", th.NumberType),
         th.Property("base_to_order_rate", th.NumberType),
-        th.Property("billing_address_id", th.NumberType),
+        th.Property("billing_address_id", th.IntegerType),
         th.Property("can_ship_partially", th.NumberType),
         th.Property("can_ship_partially_item", th.NumberType),
         th.Property("coupon_code", th.StringType),
@@ -150,8 +150,8 @@ class OrdersStream(MagentoStream):
         th.Property("customer_email", th.StringType),
         th.Property("customer_firstname", th.StringType),
         th.Property("customer_gender", th.NumberType),
-        th.Property("customer_group_id", th.NumberType),
-        th.Property("customer_id", th.NumberType),
+        th.Property("customer_group_id", th.IntegerType),
+        th.Property("customer_id", th.IntegerType),
         th.Property("customer_is_guest", th.NumberType),
         th.Property("customer_lastname", th.StringType),
         th.Property("customer_middlename", th.StringType),
@@ -167,7 +167,7 @@ class OrdersStream(MagentoStream):
         th.Property("discount_refunded", th.NumberType),
         th.Property("edit_increment", th.NumberType),
         th.Property("email_sent", th.NumberType),
-        th.Property("entity_id", th.NumberType),
+        th.Property("entity_id", th.IntegerType),
         th.Property("ext_customer_id", th.StringType),
         th.Property("ext_order_id", th.StringType),
         th.Property("forced_shipment_with_invoice", th.NumberType),
@@ -185,8 +185,8 @@ class OrdersStream(MagentoStream):
         th.Property("payment_authorization_amount", th.NumberType),
         th.Property("payment_auth_expiration", th.NumberType),
         th.Property("protect_code", th.StringType),
-        th.Property("quote_address_id", th.NumberType),
-        th.Property("quote_id", th.NumberType),
+        th.Property("quote_address_id", th.IntegerType),
+        th.Property("quote_id", th.IntegerType),
         th.Property("relation_child_id", th.StringType),
         th.Property("relation_child_real_id", th.StringType),
         th.Property("relation_parent_id", th.StringType),
@@ -205,7 +205,7 @@ class OrdersStream(MagentoStream):
         th.Property("state", th.StringType),
         th.Property("status", th.StringType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
+        th.Property("store_id", th.CustomType({"type": ["integer", "object"]})),
         th.Property("store_name", th.StringType),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
@@ -254,9 +254,9 @@ class ProductsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("sku", th.StringType),
-        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
+        th.Property("store_id", th.CustomType({"type": ["integer", "string"]})),
         th.Property("name", th.StringType),
-        th.Property("attribute_set_id", th.NumberType),
+        th.Property("attribute_set_id", th.IntegerType),
         th.Property("price", th.NumberType),
         th.Property("status", th.NumberType),
         th.Property("visibility", th.NumberType),
@@ -306,7 +306,7 @@ class ProductAttributesStream(MagentoStream):
     parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
-        th.Property("attribute_id", th.NumberType),
+        th.Property("attribute_id", th.IntegerType),
         th.Property("attribute_code", th.StringType),
         th.Property("frontend_input", th.StringType),
         th.Property("entity_type_id", th.StringType),
@@ -355,7 +355,7 @@ class ProductAttributeDetailsStream(MagentoStream):
     parent_stream_type = ProductAttributesStream
 
     schema = th.PropertiesList(
-        th.Property("attribute_id", th.NumberType),
+        th.Property("attribute_id", th.IntegerType),
         th.Property("is_wysiwyg_enabled", th.BooleanType),
         th.Property("is_html_allowed_on_front", th.BooleanType),
         th.Property("used_for_sort_by", th.BooleanType),
@@ -399,9 +399,9 @@ class ProductItemStocksStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
-        th.Property("item_id", th.NumberType),
-        th.Property("product_id", th.NumberType),
-        th.Property("stock_id", th.NumberType),
+        th.Property("item_id", th.IntegerType),
+        th.Property("product_id", th.IntegerType),
+        th.Property("stock_id", th.IntegerType),
         th.Property("qty", th.NumberType),
         th.Property("is_in_stock", th.BooleanType),
         th.Property("is_qty_decimal", th.BooleanType),
@@ -438,15 +438,15 @@ class ProductStockStatusesStream(MagentoStream):
     ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
-        th.Property("product_id", th.NumberType),
-        th.Property("stock_id", th.NumberType),
+        th.Property("product_id", th.IntegerType),
+        th.Property("stock_id", th.IntegerType),
         th.Property("qty", th.NumberType),
         th.Property("stock_status", th.NumberType),
         th.Property("stock_item",
             th.ObjectType(
-                th.Property("item_id", th.NumberType),
-                th.Property("product_id", th.NumberType),
-                th.Property("stock_id", th.NumberType),
+                th.Property("item_id", th.IntegerType),
+                th.Property("product_id", th.IntegerType),
+                th.Property("stock_id", th.IntegerType),
                 th.Property("qty", th.NumberType),
                 th.Property("is_in_stock", th.BooleanType),
                 th.Property("is_qty_decimal", th.BooleanType),
@@ -495,7 +495,7 @@ class CategoryStream(MagentoStream):
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
-        th.Property("parent_id", th.NumberType),
+        th.Property("parent_id", th.IntegerType),
         th.Property("name", th.StringType),
         th.Property("is_active", th.BooleanType),
         th.Property("position", th.NumberType),
@@ -519,7 +519,7 @@ class SaleRulesStream(MagentoStream):
     parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
-        th.Property("rule_id", th.NumberType),
+        th.Property("rule_id", th.IntegerType),
         th.Property("name", th.StringType),
         th.Property("store_labels", th.CustomType({"type": ["array", "string"]})),
         th.Property("description", th.StringType),
@@ -558,8 +558,8 @@ class CouponsStream(MagentoStream):
     parent_stream_type = StoresStream
 
     schema = th.PropertiesList(
-        th.Property("coupon_id", th.NumberType),
-        th.Property("rule_id", th.NumberType),
+        th.Property("coupon_id", th.IntegerType),
+        th.Property("rule_id", th.IntegerType),
         th.Property("code", th.StringType),
         th.Property("usage_limit", th.NumberType),
         th.Property("times_used", th.NumberType),
@@ -592,28 +592,28 @@ class InvoicesStream(MagentoStream):
         th.Property("base_total_refunded", th.NumberType),
         th.Property("base_to_global_rate", th.NumberType),
         th.Property("base_to_order_rate", th.NumberType),
-        th.Property("billing_address_id", th.NumberType),
+        th.Property("billing_address_id", th.IntegerType),
         th.Property("can_void_flag", th.NumberType),
         th.Property("created_at", th.DateTimeType),
         th.Property("discount_amount", th.NumberType),
         th.Property("discount_description", th.StringType),
         th.Property("email_sent", th.NumberType),
-        th.Property("entity_id", th.NumberType),
+        th.Property("entity_id", th.IntegerType),
         th.Property("global_currency_code", th.StringType),
         th.Property("grand_total", th.NumberType),
         th.Property("discount_tax_compensation_amount", th.NumberType),
         th.Property("increment_id", th.StringType),
         th.Property("is_used_for_refund", th.NumberType),
         th.Property("order_currency_code", th.StringType),
-        th.Property("order_id", th.NumberType),
-        th.Property("shipping_address_id", th.NumberType),
+        th.Property("order_id", th.IntegerType),
+        th.Property("shipping_address_id", th.IntegerType),
         th.Property("shipping_amount", th.NumberType),
         th.Property("shipping_discount_tax_compensation_amount", th.NumberType),
         th.Property("shipping_incl_tax", th.NumberType),
         th.Property("shipping_tax_amount", th.NumberType),
         th.Property("state", th.NumberType),
         th.Property("store_currency_code", th.StringType),
-        th.Property("store_id", th.CustomType({"type": ["number", "string"]})),
+        th.Property("store_id", th.CustomType({"type": ["integer", "string"]})),
         th.Property("store_to_base_rate", th.NumberType),
         th.Property("store_to_order_rate", th.NumberType),
         th.Property("subtotal", th.NumberType),
@@ -640,7 +640,7 @@ class StoreConfigsStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("code", th.StringType),
-        th.Property("website_id", th.NumberType),
+        th.Property("website_id", th.IntegerType),
         th.Property("locale", th.StringType),
         th.Property("base_currency_code", th.StringType),
         th.Property("default_display_currency_code", th.StringType),
@@ -670,7 +670,7 @@ class StoreWebsitesStream(MagentoStream):
         th.Property("id", th.NumberType),
         th.Property("code", th.StringType),
         th.Property("name", th.StringType),
-        th.Property("default_group_id", th.NumberType),
+        th.Property("default_group_id", th.IntegerType),
     ).to_dict()
 
 
