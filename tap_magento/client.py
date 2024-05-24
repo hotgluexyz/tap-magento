@@ -166,6 +166,10 @@ class MagentoStream(RESTStream):
 
         if self.replication_key:
             start_date = self.get_starting_timestamp(context)
+            # When override date is set it is not picked up by get_starting_timestamp
+            # manually pick up date from the config
+            if self.config.get("start_date") and not start_date:
+                start_date = parse(self.config.get("start_date"))
             params["searchCriteria[sortOrders][0][field]"] = self.replication_key
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
@@ -223,7 +227,8 @@ class MagentoStream(RESTStream):
                 params[
                     f"searchCriteria[filterGroups][0][filters][1][value]"
                 ] = self.config.get("store_id")
-
+        #Log params for debug and error tracking        
+        self.logger.info(f"Sending, path: {self.path}, params: {params}")
         return params
 
     def validate_response(self, response: requests.Response) -> None:
