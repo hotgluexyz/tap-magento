@@ -178,9 +178,7 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
-                params[
-                    "searchCriteria[filterGroups][0][filters][0][value]"
-                ] = start_date
+                params["searchCriteria[filterGroups][0][filters][0][value]"] = start_date
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
@@ -214,18 +212,18 @@ class MagentoStream(RESTStream):
             # More info on: https://github.com/magento/magento2/issues/15461
             if self.config.get("fetch_all_stores"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][1][field]"
+                f"searchCriteria[filterGroups][2][filters][0][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][1][value]"
+                    f"searchCriteria[filterGroups][2][filters][0][value]"
                 ] = int(context.get("store_id"))
 
             elif self.config.get("store_id"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][1][field]"
+                f"searchCriteria[filterGroups][2][filters][0][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][1][value]"
+                    f"searchCriteria[filterGroups][2][filters][0][value]"
                 ] = self.config.get("store_id")
         #Log params for debug and error tracking        
         self.logger.info(f"Sending, path: {self.path}, params: {params}")
