@@ -31,6 +31,7 @@ class MagentoStream(RESTStream):
 
     access_token = None
     expires_in = None
+    default_page_size = 300
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,7 +49,11 @@ class MagentoStream(RESTStream):
     @property
     def page_size(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        page_size = self.config.get("page_size") if self.config.get("page_size") != None else 300
+        page_size = (
+            self.config.get("page_size")
+            if self.config.get("page_size")
+            else self.default_page_size
+        )
         return page_size
 
     records_jsonpath = "$.items[*]"
