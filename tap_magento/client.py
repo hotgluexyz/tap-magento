@@ -32,6 +32,8 @@ class MagentoStream(RESTStream):
     access_token = None
     expires_in = None
     default_page_size = 300
+    current_page = None
+    max_pagination = 200
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -149,6 +151,8 @@ class MagentoStream(RESTStream):
 
             if total_count > current_page * page_size:
                 next_page_token = current_page + 1
+        # store at global level the current page to change start_date for big amounts of data
+        self.current_page = next_page_token     
         return next_page_token
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
@@ -159,6 +163,15 @@ class MagentoStream(RESTStream):
         params = {}
         if context is None:
             context = {}
+        
+        update_start_date = False
+        # calculate start_date
+        start_date = self.get_starting_timestamp(context)
+        # When override date is set it is not picked up by get_starting_timestamp
+        # manually pick up date from the config
+        if self.config.get("start_date") and not start_date:
+            start_date = parse(self.config.get("start_date"))
+
 
         params["searchCriteria[pageSize]"] = self.page_size
         if self.name == "source_items":
@@ -167,14 +180,18 @@ class MagentoStream(RESTStream):
         if not next_page_token:
             params["searchCriteria[currentPage]"] = 1
         else:
+            # if there are too many pages, every 200 pages update the start_date and restart pagination to avoid memory issues (503)
+            if next_page_token > self.max_pagination:
+                next_page_token = 1
+                update_start_date = True
             params["searchCriteria[currentPage]"] = next_page_token
 
         if self.replication_key:
-            start_date = self.get_starting_timestamp(context)
-            # When override date is set it is not picked up by get_starting_timestamp
-            # manually pick up date from the config
-            if self.config.get("start_date") and not start_date:
-                start_date = parse(self.config.get("start_date"))
+            # if we surpassed 200 pages update the start date to avoid memory issues
+            # update start_date to latest date fetched minus 1 second to not lose any data
+            # duplicated rows are cleaned
+            if update_start_date:
+                start_date = self.max_date
             params["searchCriteria[sortOrders][0][field]"] = self.replication_key
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
@@ -275,9 +292,25 @@ class MagentoStream(RESTStream):
         #Already skipping 404 and 503 in the parent.
         if response.status_code == 404 or response.status_code > 500:
             return []
-
         try:
             response_content = response.json()
+            max_date = None
+            if self.replication_key and self.current_page == self.max_pagination:
+                # get max date
+                dates = [parse(x[self.replication_key]) for x in super().parse_response(response)]
+                sorted_dates = sorted(dates, reverse=True)
+                sorted_dates = list(set(sorted_dates))
+                max_date = sorted_dates[0]
+                prev_date = sorted_dates[1]
+                # filtering params use "gt" therefore use second greatest max_date to avoid losing data
+                self.max_date = prev_date
+
+            for item in super().parse_response(response):
+                if self.replication_key and max_date:
+                    # in the request previous to change date only fetch records up to the second latest date to avoid duplicates
+                    if parse(item[self.replication_key]) >= max_date:
+                        continue
+                yield item
         except JSONDecodeError:
             raise Exception(f"Unable to decode response from {response.url} with content: {response.content}")
 
