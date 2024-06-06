@@ -766,7 +766,7 @@ class CartsStream(MagentoStream):
 
 class CreditMemosStream(MagentoStream):
     name = "credit_memos"
-    path = "/creditmemos"
+    path = "/V1/creditmemos"
     primary_keys = ["entity_id"]
     replication_key = "updated_at"
 
