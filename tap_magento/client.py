@@ -34,6 +34,7 @@ class MagentoStream(RESTStream):
     default_page_size = 300
     current_page = None
     max_pagination = 200
+    max_date = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -164,7 +165,6 @@ class MagentoStream(RESTStream):
         if context is None:
             context = {}
         
-        update_start_date = False
         # calculate start_date
         start_date = self.get_starting_timestamp(context)
         # When override date is set it is not picked up by get_starting_timestamp
@@ -183,14 +183,13 @@ class MagentoStream(RESTStream):
             # if there are too many pages, every 200 pages update the start_date and restart pagination to avoid memory issues (503)
             if next_page_token > self.max_pagination:
                 next_page_token = 1
-                update_start_date = True
             params["searchCriteria[currentPage]"] = next_page_token
 
         if self.replication_key:
             # if we surpassed 200 pages update the start date to avoid memory issues
             # update start_date to latest date fetched minus 1 second to not lose any data
             # duplicated rows are cleaned
-            if update_start_date:
+            if self.max_date:
                 start_date = self.max_date
             params["searchCriteria[sortOrders][0][field]"] = self.replication_key
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
@@ -298,8 +297,8 @@ class MagentoStream(RESTStream):
             if self.replication_key and self.current_page == self.max_pagination:
                 # get max date
                 dates = [parse(x[self.replication_key]) for x in super().parse_response(response)]
-                sorted_dates = sorted(dates, reverse=True)
-                sorted_dates = list(set(sorted_dates))
+                sorted_dates = list(set(dates))
+                sorted_dates = sorted(sorted_dates, reverse=True)
                 max_date = sorted_dates[0]
                 prev_date = sorted_dates[1]
                 # filtering params use "gt" therefore use second greatest max_date to avoid losing data
