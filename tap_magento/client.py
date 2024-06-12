@@ -299,10 +299,13 @@ class MagentoStream(RESTStream):
                 dates = [parse(x[self.replication_key]) for x in super().parse_response(response)]
                 sorted_dates = list(set(dates))
                 sorted_dates = sorted(sorted_dates, reverse=True)
-                max_date = sorted_dates[0]
-                prev_date = sorted_dates[1]
-                # filtering params use "gt" therefore use second greatest max_date to avoid losing data
-                self.max_date = prev_date
+                if len(sorted_dates) < 2:
+                    self.max_pagination = self.max_pagination + 1
+                else:
+                    max_date = sorted_dates[0]
+                    prev_date = sorted_dates[1]
+                    # filtering params use "gt" therefore use second greatest max_date to avoid losing data
+                    self.max_date = prev_date
 
             for item in super().parse_response(response):
                 if self.replication_key and max_date:
