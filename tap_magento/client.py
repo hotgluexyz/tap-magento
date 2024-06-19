@@ -35,6 +35,7 @@ class MagentoStream(RESTStream):
     current_page = None
     max_pagination = 200
     max_date = None
+    retries_500_status = 0
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -140,6 +141,11 @@ class MagentoStream(RESTStream):
         elif response.status_code in [404, 503]:
             return None
         else:
+            # Some pages give 500 due to an internal error, need to retry at least 3 times and then skip the page
+            if response.status_code == 500 and self.retries_500_status > 3:
+                #reset the retries count and move to next page
+                self.retries_500_status = 0
+                return previous_token + 1
             json_data = response.json()
             total_count = json_data.get("total_count", 0)
             if json_data.get("search_criteria"):
@@ -252,6 +258,10 @@ class MagentoStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
+        #Reset 500 status code retries counter on successful response
+        if response.status_code == 200 and self.retries_500_status > 0:
+            self.retries_500_status = 0
+            
         if self.config.get("crawl_delay"):
             delay = 0
             try:
@@ -284,6 +294,13 @@ class MagentoStream(RESTStream):
                 f"{response.reason} for path: {self.path}"
                 f" with text:{response.text} "
             )
+            if response.status_code == 500:
+                if self.retries_500_status > 3:
+                    #Skip this page after retrying more than 3 times
+                    self.logger.info(f"Skipping path: {response.request.url} after 3 retries.")
+                    return
+                else:
+                    self.retries_500_status = self.retries_500_status + 1     
             raise RetriableAPIError(msg)
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
