@@ -272,7 +272,7 @@ class OrdersStream(MagentoStream):
 
                 self.ids.append(item["entity_id"])
                 yield item
-        except:
+        except Exception as e:
             #Unable to parse the response. Log and then skip this page.
             self.logger.warn(f'Could not parse following response. {response.text}. {response.request.url} Skipping...')
             return []

@@ -7,7 +7,7 @@ import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from simplejson.scanner import JSONDecodeError
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
@@ -317,13 +317,20 @@ class MagentoStream(RESTStream):
                 sorted_dates = list(set(dates))
                 sorted_dates = sorted(sorted_dates, reverse=True)
                 if len(sorted_dates) < 2:
-                    self.max_pagination = self.max_pagination + 1
+                    # If the max date already matches, increase the max pagination
+                    if self.max_date == (sorted_dates[0] - timedelta(seconds=1)):
+                        self.max_pagination = self.max_pagination + 1
+                    else:
+                        # If this entire page is the same date, the max_date should be set to the current max_date - 1 second
+                        max_date = None
+                        self.max_date = sorted_dates[0] - timedelta(seconds=1)
                 else:
+                    # filtering params use "gt" therefore use second greatest max_date to avoid losing data
                     max_date = sorted_dates[0]
                     prev_date = sorted_dates[1]
-                    # filtering params use "gt" therefore use second greatest max_date to avoid losing data
                     self.max_date = prev_date
 
+            # TODO: I think we should get rid of below
             for item in super().parse_response(response):
                 if self.replication_key and max_date:
                     # in the request previous to change date only fetch records up to the second latest date to avoid duplicates
