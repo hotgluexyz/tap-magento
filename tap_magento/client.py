@@ -200,6 +200,10 @@ class MagentoStream(RESTStream):
             params["searchCriteria[sortOrders][0][field]"] = self.replication_key
             params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
+            if self.name == "orders":
+                params["searchCriteria[sortOrders][1][field]"] = "increment_id"
+                params["searchCriteria[sortOrders][1][direction]"] = "ASC"
+
             if start_date is not None:
                 start_date = start_date.strftime("%Y-%m-%d %H:%M:%S")
                 params[
