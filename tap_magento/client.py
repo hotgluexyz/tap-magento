@@ -241,7 +241,7 @@ class MagentoStream(RESTStream):
             # In 80% of the cases, this workaround should work, on some other cases it
             # will fail.
             # More info on: https://github.com/magento/magento2/issues/15461
-            if self.config.get("fetch_all_stores"):
+            if self.config.get("fetch_all_stores") and context.get("store_id"):
                 params[
                 f"searchCriteria[filterGroups][2][filters][0][field]"
             ] = "store_id"
