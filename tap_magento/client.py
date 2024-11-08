@@ -19,6 +19,7 @@ from requests_oauthlib import OAuth1
 from urllib3.exceptions import ProtocolError, InvalidChunkLength
 import time
 from pendulum import parse
+import copy
 
 
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -42,7 +43,7 @@ class MagentoStream(RESTStream):
         if self.config.get("custom_cookies"):
             for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
                 self._requests_session.cookies[cookie] = cookie_value
-
+        self.new_start_date = None
 
     @property
     def url_base(self) -> str:
@@ -100,12 +101,8 @@ class MagentoStream(RESTStream):
             token = self.config.get("oauth_token", self.config.get("access_token"))
         return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
-
-    def prepare_request(self, context, next_page_token):
-        request = super().prepare_request(context, next_page_token)
-
-        if self.config.get("use_oauth"):
-            request.auth = OAuth1(
+    def get_auth1(self):
+        return OAuth1(
                 self.config.get('consumer_key'),
                 client_secret=self.config.get('consumer_secret'),
                 resource_owner_key=self.config.get("oauth_token", self.config.get("access_token")),
@@ -113,6 +110,12 @@ class MagentoStream(RESTStream):
                 signature_type="auth_header",
                 signature_method=SIGNATURE_HMAC_SHA256
             )
+
+    def prepare_request(self, context, next_page_token):
+        request = super().prepare_request(context, next_page_token)
+
+        if self.config.get("use_oauth"):
+            request.auth =self.get_auth1()
 
         return request
 
@@ -138,7 +141,9 @@ class MagentoStream(RESTStream):
             )
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
-        elif response.status_code in [404, 503]:
+        elif response.status_code in [404]:
+            return 1
+        elif response.status_code in [503]:
             return None
         else:
             # Some pages give 500 due to an internal error, need to retry at least 3 times and then skip the page
@@ -161,8 +166,10 @@ class MagentoStream(RESTStream):
         # store at global level the current page to change start_date for big amounts of data
         self.current_page = next_page_token     
         return next_page_token
+    
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
+     
     def get_url_params(
         self, context, next_page_token
     ):
@@ -209,7 +216,7 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
-                params["searchCriteria[filterGroups][0][filters][0][value]"] = start_date
+                params["searchCriteria[filterGroups][0][filters][0][value]"] = self.new_start_date or start_date
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
@@ -259,6 +266,49 @@ class MagentoStream(RESTStream):
         #Log params for debug and error tracking        
         self.logger.info(f"Sending, path: {self.path}, params: {params}")
         return params
+    
+    def get_start_date(self):
+        current_start_date = parse(self.stream_state["progress_markers"]["replication_key_value"] or self.stream_state.get("replication_key_value") or self.config.get("start_date"))
+        cur_start_date_timestamp = current_start_date.timestamp()
+
+        def make_request(start_date):
+            url = self.get_url(None)
+            headers = self.http_headers
+            start_date = datetime.fromtimestamp(start_date).strftime("%Y-%m-%d %H:%M:%S")
+
+            params = self.get_url_params(None, None)
+            params["searchCriteria[filterGroups][0][filters][0][value]"] = start_date
+
+            auth = None
+            if self.authenticator:
+                authenticator = self.authenticator
+                headers.update(authenticator.auth_headers)
+            if self.config.get("use_oauth"):
+                auth = self.get_auth1()
+            # Format the URL with the date and make the request
+            res = requests.get(url, headers=headers, auth=auth, params=params)
+            return res
+        
+        # Initialize the search range: start_date as lower bound, today as upper bound
+        lower_bound = cur_start_date_timestamp
+        upper_bound = datetime.utcnow().timestamp()
+
+        # Binary search loop
+        while lower_bound <= upper_bound:
+            mid_date = int(lower_bound + round((upper_bound - lower_bound) / 2))
+            res = make_request(mid_date)
+            
+            if res.status_code == 200:
+                # Found a valid date, move the upper bound to search for an earlier valid date
+                upper_bound = mid_date - 1
+            elif res.status_code == 404:
+                # If 404, adjust the search to later dates
+                lower_bound = mid_date + 1
+            else:
+                raise Exception(f"Failed while calculating start_date. Unexpected status code: {res.text}")
+
+        return datetime.fromtimestamp(lower_bound).strftime("%Y-%m-%d %H:%M:%S")
+
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
@@ -277,13 +327,23 @@ class MagentoStream(RESTStream):
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
 
-        if response.status_code in [404, 503]:
-            self.logger.info("Response status code: {} - Endpoint skipped".format(response.status_code))
-            if response.status_code == 503:
-                msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
-                self.logger.info(msg)
-                raise RetriableAPIError(msg)
+        if response.status_code in [404]:
+            if self.replication_key and response.json().get("message") == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
+                if not self.new_start_date:
+                    self.logger.info("Response status code: {} with response {} - Calculating new start_date".format(response.status_code, response.text))
+                    self.new_start_date = self.get_start_date()
+                else:
+                    # get the greates date, either fetched records latest rep_key or new_start_date
+                    current_rep_key_value = parse(self.stream_state["progress_markers"]["replication_key_value"])
+                    greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
+                    # add a day and iterate
+                    greatest_date = greatest_date + timedelta(days=1)
+                    self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
             pass
+        elif response.status_code == 503:
+            msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
+            self.logger.info(msg)
+            raise RetriableAPIError(msg)
         elif 400 <= response.status_code < 500:
             msg = (
                 f"{response.status_code} Client Error: "
@@ -370,3 +430,28 @@ class MagentoStream(RESTStream):
             if not use_item_stock:
                 return []
         super()._sync_records(context=context)
+    
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        next_page_token: Any = None
+        finished = False
+        decorated_request = self.request_decorator(self._request)
+
+        while not finished:
+            prepared_request = self.prepare_request(
+                context, next_page_token=next_page_token
+            )
+            resp = decorated_request(prepared_request, context)
+            for row in self.parse_response(resp):
+                yield row
+            previous_token = copy.deepcopy(next_page_token)
+            next_page_token = self.get_next_page_token(
+                response=resp, previous_token=previous_token
+            )
+            # when iterating daily due to 404 there could be same next_page_token 1
+            if next_page_token and next_page_token == previous_token and next_page_token != 1:
+                raise RuntimeError(
+                    f"Loop detected in pagination. "
+                    f"Pagination token {next_page_token} is identical to prior token."
+                )
+            # Cycle until get_next_page_token() no longer returns a value
+            finished = not next_page_token
