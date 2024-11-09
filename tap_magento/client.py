@@ -268,7 +268,7 @@ class MagentoStream(RESTStream):
         return params
     
     def get_start_date(self):
-        current_start_date = parse(self.stream_state["progress_markers"]["replication_key_value"] or self.stream_state.get("replication_key_value") or self.config.get("start_date"))
+        current_start_date = parse(self.stream_state.get("progress_markers", dict()).get("replication_key_value") or self.stream_state.get("replication_key_value") or self.config.get("start_date"))
         cur_start_date_timestamp = current_start_date.timestamp()
 
         def make_request(start_date):
