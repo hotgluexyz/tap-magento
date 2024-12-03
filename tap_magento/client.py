@@ -59,6 +59,8 @@ class MagentoStream(RESTStream):
             if self.config.get("page_size")
             else self.default_page_size
         )
+        if isinstance(page_size, float) or isinstance(page_size, str):
+            page_size = int(page_size)
         return page_size
 
     records_jsonpath = "$.items[*]"
