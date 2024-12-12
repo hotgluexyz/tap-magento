@@ -37,6 +37,7 @@ class MagentoStream(RESTStream):
     max_pagination = 200
     max_date = None
     retries_500_status = 0
+    not_filterable_by_store = ["categories", "product_attributes", "salerules"] # these streams are not filterable because don't have the field store_id
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -152,6 +153,7 @@ class MagentoStream(RESTStream):
             if response.status_code == 500 and self.retries_500_status > 3:
                 #reset the retries count and move to next page
                 self.retries_500_status = 0
+                previous_token = previous_token or 1
                 return previous_token + 1
             json_data = response.json()
             total_count = json_data.get("total_count", 0)
@@ -245,7 +247,7 @@ class MagentoStream(RESTStream):
             (context.get("store_id")
             and self.config.get("fetch_all_stores"))
             or self.config.get("store_id")
-        ):
+        ) and self.name not in self.not_filterable_by_store:
             # This is just a workaround, magento doesn't support store_code very well.
             # In 80% of the cases, this workaround should work, on some other cases it
             # will fail.
