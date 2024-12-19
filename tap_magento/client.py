@@ -37,6 +37,7 @@ class MagentoStream(RESTStream):
     max_pagination = 200
     max_date = None
     retries_500_status = 0
+    error_message = None
     not_filterable_by_store = ["categories", "product_attributes", "salerules"] # these streams are not filterable because don't have the field store_id
 
     def __init__(self, *args, **kwargs):
@@ -144,9 +145,10 @@ class MagentoStream(RESTStream):
             )
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
-        elif response.status_code in [404]:
+        # return 1 only when iterating daily due to error with missing products in orders
+        elif response.status_code in [404] and self.error_message == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
             return 1
-        elif response.status_code in [503]:
+        elif response.status_code in [503, 404]:
             return None
         else:
             # Some pages give 500 due to an internal error, need to retry at least 3 times and then skip the page
@@ -261,12 +263,15 @@ class MagentoStream(RESTStream):
                 ] = int(context.get("store_id"))
 
             elif self.config.get("store_id"):
+                store_id = self.config.get("store_id")
+                if "," in self.config.get("store_id") and context.get("store_id"):
+                    store_id = context.get("store_id")
                 params[
                 f"searchCriteria[filterGroups][2][filters][0][field]"
             ] = "store_id"
                 params[
                     f"searchCriteria[filterGroups][2][filters][0][value]"
-                ] = self.config.get("store_id")
+                ] = store_id
         #Log params for debug and error tracking        
         self.logger.info(f"Sending, path: {self.path}, params: {params}")
         return params
@@ -316,6 +321,7 @@ class MagentoStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
+        self.error_message = None
         #Reset 500 status code retries counter on successful response
         if response.status_code == 200 and self.retries_500_status > 0:
             self.retries_500_status = 0
@@ -333,6 +339,8 @@ class MagentoStream(RESTStream):
 
         if response.status_code in [404]:
             if self.replication_key and response.json().get("message") == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
+                self.error_message = "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw."
+                self.binary_search = True
                 if not self.new_start_date:
                     self.logger.info("Response status code: {} with response {} - Calculating new start_date".format(response.status_code, response.text))
                     self.new_start_date = self.get_start_date()
@@ -451,8 +459,8 @@ class MagentoStream(RESTStream):
             next_page_token = self.get_next_page_token(
                 response=resp, previous_token=previous_token
             )
-            # when iterating daily due to 404 there could be same next_page_token 1
-            if next_page_token and next_page_token == previous_token and next_page_token != 1:
+            # when iterating daily due to missing products 404 error there could be same next_page_token 1
+            if next_page_token and next_page_token == previous_token and self.error_message != "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
                 raise RuntimeError(
                     f"Loop detected in pagination. "
                     f"Pagination token {next_page_token} is identical to prior token."
