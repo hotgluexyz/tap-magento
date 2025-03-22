@@ -38,6 +38,7 @@ class MagentoStream(RESTStream):
     max_date = None
     retries_500_status = 0
     error_message = None
+    last_store_code = None
     not_filterable_by_store = ["categories", "product_attributes", "salerules"] # these streams are not filterable because don't have the field store_id
 
     def __init__(self, *args, **kwargs):
@@ -159,6 +160,7 @@ class MagentoStream(RESTStream):
                 return previous_token + 1
             json_data = response.json()
             total_count = json_data.get("total_count", 0)
+            self.logger.info(f"Total count: {total_count}")
             if json_data.get("search_criteria"):
                 current_page = json_data.get("search_criteria").get("current_page")
             else:
@@ -183,7 +185,15 @@ class MagentoStream(RESTStream):
         params = {}
         if context is None:
             context = {}
-        
+
+        if context.get("store_code"):
+            # Need to reset max_date when store_code changes
+            if self.max_date and self.last_store_code != context["store_code"]:
+                self.max_date = None
+
+            # Store the last store_code to check if it has changed later
+            self.last_store_code = context["store_code"]
+
         # calculate start_date
         start_date = self.get_starting_timestamp(context)
         # When override date is set it is not picked up by get_starting_timestamp
@@ -275,7 +285,7 @@ class MagentoStream(RESTStream):
         #Log params for debug and error tracking        
         self.logger.info(f"Sending, path: {self.path}, params: {params}")
         return params
-    
+
     def get_start_date(self):
         current_start_date = parse(self.stream_state.get("progress_markers", dict()).get("replication_key_value") or self.stream_state.get("replication_key_value") or self.config.get("start_date"))
         cur_start_date_timestamp = current_start_date.timestamp()
@@ -406,13 +416,14 @@ class MagentoStream(RESTStream):
                     prev_date = sorted_dates[1]
                     self.max_date = prev_date
 
-            # TODO: I think we should get rid of below
-            for item in super().parse_response(response):
-                if self.replication_key and max_date:
-                    # in the request previous to change date only fetch records up to the second latest date to avoid duplicates
-                    if parse(item[self.replication_key]) >= max_date:
-                        continue
-                yield item
+            # TODO: I think we should get rid of below --> (2)
+            # TODO: Commenting this out to avoid losing this logic, if any other issue is found
+            # for item in super().parse_response(response):
+            #     if self.replication_key and max_date:
+            #         # in the request previous to change date only fetch records up to the second latest date to avoid duplicates
+            #         if parse(item[self.replication_key]) >= max_date:
+            #             continue
+            #     yield item
         except JSONDecodeError:
             raise Exception(f"Unable to decode response from {response.url} with content: {response.content}")
 
@@ -453,6 +464,7 @@ class MagentoStream(RESTStream):
                 context, next_page_token=next_page_token
             )
             resp = decorated_request(prepared_request, context)
+
             for row in self.parse_response(resp):
                 yield row
             previous_token = copy.deepcopy(next_page_token)
