@@ -57,9 +57,6 @@ class MagentoStream(RESTStream):
     @property
     def page_size(self) -> str:
         """Return the API URL root, configurable via tap settings."""
-        if self.name == "product_item_stocks":
-            return self._page_size
-
         page_size = (
             self.config.get("page_size")
             if self.config.get("page_size")
@@ -165,7 +162,7 @@ class MagentoStream(RESTStream):
             total_count = json_data.get("total_count", 0)
             self.logger.info(f"Total count: {total_count}")
             if json_data.get("search_criteria"):
-                current_page = json_data.get("search_criteria").get("current_page") or int(json_data.get("search_criteria").get("limit")[0])
+                current_page = json_data.get("search_criteria").get("current_page")
             else:
                 current_page = 1
             page_size = self.page_size
@@ -203,13 +200,7 @@ class MagentoStream(RESTStream):
         # manually pick up date from the config
         if self.config.get("start_date") and not start_date:
             start_date = parse(self.config.get("start_date"))
-            
-        if self.name == "product_item_stocks":
-            params["scopeId"] = 0
-            params["qty"] = 100000
-            params["pageSize"] = self.page_size
-            params["currentPage"] = next_page_token
-            return params
+
 
         params["searchCriteria[pageSize]"] = self.page_size
         if self.name == "source_items":

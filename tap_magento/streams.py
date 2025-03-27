@@ -428,12 +428,11 @@ class ProductAttributeDetailsStream(MagentoStream):
 
 class ProductItemStocksStream(MagentoStream):
     name = "product_item_stocks"
-    path = "/{store_code}/V1/stockItems/lowStock"
-    primary_keys = ["store_id", "item_id"]
-    records_jsonpath: str = "$.items[*]"
+    path = "/{store_code}/V1/stockItems/{product_sku}"
+    primary_keys = ["item_id"]
+    records_jsonpath: str = "$[*]"
     replication_key = None
-    _page_size = 10000
-    parent_stream_type = StoresStream
+    parent_stream_type = ProductsStream
 
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
@@ -516,7 +515,11 @@ class ProductStockStatusesStream(MagentoStream):
         ),
     ).to_dict()
 
-    def post_process(self, row, context):
+    def post_process(
+        self,
+        row,
+        context,
+    ):
         # Ignore disabled products
         if context.get("product_status") == 2:
             return None
