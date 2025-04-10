@@ -17,6 +17,8 @@ from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
 from requests_oauthlib import OAuth1
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import SoftwareName, OperatingSystem, Popularity
+import singer
+from singer import StateMessage
 
 
 logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -262,3 +264,15 @@ class MagentoStream(RESTStream):
             if not use_stock_statuses:
                 return []
         super()._sync_records(context=context)
+
+    def _write_state_message(self) -> None:
+        """Write out a STATE message with the latest state."""
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name in tap_state.get("bookmarks").keys():
+                # clean partitions from state only for streams with no rep key
+                if tap_state["bookmarks"][stream_name].get("partitions") and not self._tap.streams[stream_name].replication_key:
+                    tap_state["bookmarks"][stream_name]["partitions"] = []
+
+        singer.write_message(StateMessage(value=tap_state))
