@@ -285,15 +285,22 @@ class MagentoStream(RESTStream):
                 store_id = self.config.get("store_id")
                 if "," in self.config.get("store_id") and context.get("store_id"):
                     store_id = context.get("store_id")
-                params[
-                f"searchCriteria[filterGroups][2][filters][0][field]"
-            ] = "store_id"
-                params[
-                    f"searchCriteria[filterGroups][2][filters][0][value]"
-                ] = store_id
+                if store_id:
+                    params.update(self.make_store_filter(store_id))
         #Log params for debug and error tracking        
         self.logger.info(f"Sending, path: {self.path}, params: {params}")
         return params
+    
+    def make_store_filter(self, store_id):
+        if isinstance(store_id, str):
+            store_id = store_id.split(",")
+        if store_id:
+            params = {}
+            for idx, store in enumerate(store_id):
+                params[f"searchCriteria[filterGroups][2][filters][{idx}][field]"] = "store_id"
+                params[f"searchCriteria[filterGroups][2][filters][{idx}][value]"] = store
+            return params
+        return {}
 
     def get_start_date(self):
         current_start_date = parse(self.stream_state.get("progress_markers", dict()).get("replication_key_value") or self.stream_state.get("replication_key_value") or self.config.get("start_date"))
