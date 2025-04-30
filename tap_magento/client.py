@@ -364,20 +364,28 @@ class MagentoStream(RESTStream):
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
 
         if response.status_code in [404]:
-            if self.replication_key and response.json().get("message") == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
-                self.error_message = "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw."
-                self.binary_search = True
-                if not self.new_start_date:
-                    self.logger.info("Response status code: {} with response {} - Calculating new start_date".format(response.status_code, response.text))
-                    self.new_start_date = self.get_start_date()
-                else:
-                    # get the greates date, either fetched records latest rep_key or new_start_date
-                    current_rep_key_value = parse(self.stream_state["progress_markers"]["replication_key_value"])
-                    greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
-                    # add a day and iterate
-                    greatest_date = greatest_date + timedelta(days=1)
-                    self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
-            pass
+            try:
+                response_json = response.json()
+                if self.replication_key and response_json.get("message") == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
+                    self.error_message = "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw."
+                    self.binary_search = True
+                    if not self.new_start_date:
+                        self.logger.info("Response status code: {} with response {} - Calculating new start_date".format(response.status_code, response.text))
+                        self.new_start_date = self.get_start_date()
+                    else:
+                        # get the greates date, either fetched records latest rep_key or new_start_date
+                        current_rep_key_value = parse(self.stream_state["progress_markers"]["replication_key_value"])
+                        greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
+                        # add a day and iterate
+                        greatest_date = greatest_date + timedelta(days=1)
+                        self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
+            except JSONDecodeError:
+                msg = (
+                    f"Received non-JSON response from {self.path}. "
+                    f"Content preview: {response.text}"
+                )
+                raise FatalAPIError(msg)
+
         elif response.status_code == 503:
             msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
             self.logger.info(msg)
