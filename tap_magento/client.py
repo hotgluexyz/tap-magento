@@ -405,7 +405,7 @@ class MagentoStream(RESTStream):
                 f" with text:{response.text} "
             )
             if response.status_code == 500:
-                if self.retries_500_status > 3:
+                if self.retries_500_status > 3 and self.current_page:
                     #Skip this page after retrying more than 3 times
                     self.logger.info(f"Skipping path: {response.request.url} after 3 retries.")
                     return
