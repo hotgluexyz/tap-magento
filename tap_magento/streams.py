@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Union, List, Iterable
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
-from tap_magento.client import MagentoStream
+from tap_magento.client import MagentoStream, ChunkedQueryMagentoStream
 import requests
 
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
@@ -87,7 +87,7 @@ class UsersStream(MagentoStream):
     ).to_dict()
 
 
-class OrdersStream(MagentoStream):
+class OrdersStream(ChunkedQueryMagentoStream):
     """Define Order Stream"""
 
     name = "orders"

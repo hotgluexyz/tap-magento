@@ -3,11 +3,11 @@
 import backoff
 import logging
 import requests
-
+import copy
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
@@ -173,12 +173,13 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
+
             params["order_by"] = self.replication_key
         
         if context.get("store_id"):
             filter_idx = 0
             if self.replication_key:
-                filter_idx + 1
+                filter_idx += 1
             
             # This is just a workaround, magento doesn't support store_code very well.
             # In 80% of the cases, this workaround should work, on some other cases it
@@ -186,18 +187,18 @@ class MagentoStream(RESTStream):
             # More info on: https://github.com/magento/magento2/issues/15461
             if self.config.get("fetch_all_stores"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+                f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                    f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][value]"
                 ] = int(context.get("store_id"))
                 
             elif self.config.get("store_id"):
                 params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
+                f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
+                    f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][value]"
                 ] = self.config.get("store_id")
 
         return params
@@ -262,3 +263,91 @@ class MagentoStream(RESTStream):
             if not use_stock_statuses:
                 return []
         super()._sync_records(context=context)
+
+    @property
+    def selected_fields(self):
+        selected_fields = [
+            b[1] for b, v 
+            in self._tap_input_catalog.get(self.name).metadata.items() 
+            if len(b) > 1 and b[0] == 'properties' and v.selected]
+        return selected_fields
+
+
+class ChunkedQueryMagentoStream(MagentoStream):
+    """Chunked query Magento stream."""
+
+
+    request_segment_size = 24 # Hours
+    @property
+    def replication_key(self):
+        raise NotImplementedError("Replication key is required for chunked query streams")
+    
+
+
+    def get_url_params(self, context, next_page_token):
+        params = super().get_url_params(context, next_page_token)
+        filter_keys = [key for key in params.keys() if key.startswith("searchCriteria[filterGroups]") and key.endswith("[field]")]
+        existing_filter_count = len(filter_keys)
+        start_date = context.get("chunk_start_date")
+        end_date = context.get("chunk_end_date")
+
+        start_date_filter_index = 0
+        end_date_filter_index = existing_filter_count
+
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][value]"] = start_date
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][condition_type]"] = "gt"
+        
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][value]"] = end_date
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][condition_type]"] = "lteq"
+        
+        params.pop("order_by")
+        params["order_by"] = self.replication_key
+
+        params["fields"] = f"items[{','.join(self.selected_fields)}]"
+
+        return params
+    
+    def get_ending_timestamp(self):
+        if self.config.get("end_date"):
+            return self.config.get("end_date")
+        else:
+            now = datetime.now(timezone.utc)
+            return now
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        ultimate_start_date = self.get_starting_timestamp(context)
+        ultimate_end_date = self.get_ending_timestamp()
+        
+
+        start_date = ultimate_start_date
+        while start_date < ultimate_end_date:
+            end_date = start_date + timedelta(hours=self.request_segment_size)
+            if end_date > ultimate_end_date:
+                end_date = ultimate_end_date
+
+            next_page_token: Any = None
+            chunk_finished = False
+            decorated_request = self.request_decorator(self._request)
+            context["chunk_start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            context["chunk_end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+            while not chunk_finished:
+                prepared_request = self.prepare_request(
+                    context, next_page_token=next_page_token
+                )
+                resp = decorated_request(prepared_request, context)
+                yield from self.parse_response(resp)
+                previous_token = copy.deepcopy(next_page_token)
+                next_page_token = self.get_next_page_token(
+                    response=resp, previous_token=previous_token
+                )
+                if next_page_token and next_page_token == previous_token:
+                    raise RuntimeError(
+                        f"Loop detected in pagination. "
+                        f"Pagination token {next_page_token} is identical to prior token."
+                    )
+                # Cycle until get_next_page_token() no longer returns a value
+                chunk_finished = not next_page_token
+
+            start_date = end_date
