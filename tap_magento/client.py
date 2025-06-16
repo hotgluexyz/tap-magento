@@ -7,7 +7,7 @@ import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Callable, Iterable
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from simplejson.scanner import JSONDecodeError
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
@@ -503,3 +503,91 @@ class MagentoStream(RESTStream):
                 )
             # Cycle until get_next_page_token() no longer returns a value
             finished = not next_page_token
+
+    @property
+    def selected_fields(self):
+        selected_fields = [
+            b[1] for b, v 
+            in self._tap_input_catalog.get(self.name).metadata.items() 
+            if len(b) > 1 and b[0] == 'properties' and v.selected]
+        return selected_fields
+
+
+
+
+class ChunkedQueryMagentoStream(MagentoStream):
+    """Chunked query Magento stream."""
+
+
+    request_segment_size = 24 # Hours
+    @property
+    def replication_key(self):
+        raise NotImplementedError("Replication key is required for chunked query streams")
+    
+
+
+    def get_url_params(self, context, next_page_token):
+        start_date = context.get("chunk_start_date")
+        end_date = context.get("chunk_end_date")
+
+        params = {}
+        params[f"searchCriteria[filterGroups][0][filters][0][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][0][filters][0][value]"] = start_date
+        params[f"searchCriteria[filterGroups][0][filters][0][condition_type]"] = "gt"
+        
+        params[f"searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][1][filters][0][value]"] = end_date
+        params[f"searchCriteria[filterGroups][1][filters][0][condition_type]"] = "lteq"
+        
+        params["fields"] = f"items[{','.join(self.selected_fields)}],total_count,search_criteria"
+
+        params["searchCriteria[pageSize]"] = self.page_size
+        params["searchCriteria[currentPage]"] = next_page_token or 1
+
+
+        return params
+    
+    def get_ending_timestamp(self):
+        if self.config.get("end_date"):
+            return self.config.get("end_date")
+        else:
+            now = datetime.now(timezone.utc)
+            return now
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        ultimate_start_date = self.get_starting_timestamp(context)
+        ultimate_end_date = self.get_ending_timestamp()
+        decorated_request = self.request_decorator(self._request)
+        
+        context = context or {}
+        start_date = ultimate_start_date
+        while start_date < ultimate_end_date:
+            end_date = start_date + timedelta(hours=self.request_segment_size)
+            if end_date > ultimate_end_date:
+                end_date = ultimate_end_date
+
+            next_page_token: Any = None
+            chunk_finished = False
+
+            context["chunk_start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            context["chunk_end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+            while not chunk_finished:
+                prepared_request = self.prepare_request(
+                    context, next_page_token=next_page_token
+                )
+                resp = decorated_request(prepared_request, context)
+                yield from self.parse_response(resp)
+                previous_token = copy.deepcopy(next_page_token)
+                next_page_token = self.get_next_page_token(
+                    response=resp, previous_token=previous_token
+                )
+                if next_page_token and next_page_token == previous_token:
+                    raise RuntimeError(
+                        f"Loop detected in pagination. "
+                        f"Pagination token {next_page_token} is identical to prior token."
+                    )
+                # Cycle until get_next_page_token() no longer returns a value
+                chunk_finished = not next_page_token
+
+            start_date = end_date
+
