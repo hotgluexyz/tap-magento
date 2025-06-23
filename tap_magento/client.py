@@ -20,6 +20,12 @@ from urllib3.exceptions import ProtocolError, InvalidChunkLength
 import time
 from pendulum import parse
 import copy
+from bs4 import BeautifulSoup
+
+def extract_text_from_html(content: str) -> str:
+    soup = BeautifulSoup(content, 'html.parser')
+    text = '- '.join(soup.stripped_strings)
+    return text
 
 
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
@@ -390,6 +396,9 @@ class MagentoStream(RESTStream):
             msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
             self.logger.info(msg)
             raise RetriableAPIError(msg)
+        elif response.status_code == 403 or "cf-error-details" in response.text:
+            resp_text = extract_text_from_html(response.text)
+            raise FatalAPIError(resp_text)
         elif 400 <= response.status_code < 500:
             msg = (
                 f"{response.status_code} Client Error: "
