@@ -5,7 +5,7 @@ import logging
 import requests
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Callable, Iterable
+from typing import Any, Optional, Callable, Iterable, cast
 
 from datetime import datetime
 from singer_sdk.streams import RESTStream
@@ -14,7 +14,7 @@ from singer_sdk.authenticators import BearerTokenAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
-from requests_oauthlib import OAuth1
+from requests_oauthlib import OAuth1Session
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import SoftwareName, OperatingSystem, Popularity
 
@@ -36,6 +36,9 @@ class MagentoStream(RESTStream):
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
+        if store_url.endswith("/"):
+            return f"{store_url}rest/V1"
+
         return f"{store_url}/rest/V1"
     
     @property
@@ -76,30 +79,56 @@ class MagentoStream(RESTStream):
         return self.access_token
         
     @property
-    def authenticator(self) -> BearerTokenAuthenticator:
+    def authenticator(self) -> Optional[BearerTokenAuthenticator]:
         """Return a new authenticator object."""
+        # If OAuth1 is enabled, don't use Bearer token authentication
+        # OAuth1 auth is handled in prepare_request method
+        if self.config.get("use_oauth"):
+            return None
+            
         if self.config.get("username") and self.config.get("password") is not None:
             token = self.get_token()
         else:
             token = self.config.get("oauth_token", self.config.get("access_token"))
         return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
+    def get_oauth1_session(self) -> requests.Session:
+        return OAuth1Session(
+            client_key=self.config["consumer_key"],
+            client_secret=self.config["consumer_secret"],
+            resource_owner_key=self.config.get("oauth_token", self.config.get("access_token")),
+            resource_owner_secret=self.config.get("oauth_token_secret", self.config.get("access_token_secret")),
+            signature_type="AUTH_HEADER",
+            signature_method=SIGNATURE_HMAC_SHA256,
+            force_include_body=False
+        )
 
     def prepare_request(self, context, next_page_token):
-        request = super().prepare_request(context, next_page_token)
-
         if self.config.get("use_oauth"):
-            request.auth = OAuth1(
-                self.config.get('consumer_key'),
-                client_secret=self.config.get('consumer_secret'),
-                resource_owner_key=self.config.get("oauth_token", self.config.get("access_token")),
-                resource_owner_secret=self.config.get("oauth_token_secret", self.config.get("access_token_secret")),
-                signature_type="auth_header",
-                signature_method=SIGNATURE_HMAC_SHA256
-            )
-        
-        return request
+            http_method = self.rest_method
+            url: str = self.get_url(context)
+            params: dict = self.get_url_params(context, next_page_token)
+            request_data = self.prepare_request_payload(context, next_page_token)
+            headers = self.http_headers
+            # Generate a new OAuth1 session
+            client = self.get_oauth1_session()
 
+            request = cast(
+                requests.PreparedRequest,
+                client.prepare_request(
+                    requests.Request(
+                        method=http_method,
+                        url=url,
+                        params=params,
+                        headers=headers,
+                        json=request_data,
+                    ),
+                ),
+            )
+        else:
+            request = super().prepare_request(context, next_page_token)
+
+        return request
 
     @property
     def http_headers(self) -> dict:
