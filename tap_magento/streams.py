@@ -433,9 +433,7 @@ class ProductStockStatusesStream(MagentoStream):
     path = "/stockStatuses/{product_sku}"
     primary_keys = ["stock_id", "product_id"]
     records_jsonpath: str = "$.[*]"
-    replication_key = None
     parent_stream_type = ProductsStream
-    ignore_parent_replication_key = True
 
     schema = th.PropertiesList(
         th.Property("product_id", th.IntegerType),
