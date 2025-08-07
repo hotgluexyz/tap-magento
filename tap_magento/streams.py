@@ -884,3 +884,72 @@ class CreditMemosStream(MagentoStream):
             th.Property("gw_card_tax_amount", th.StringType),
         )),
     ).to_dict()
+    
+class CustomersStream(MagentoStream):
+    name = "customers"
+    path = "/V1/customers/search"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    records_jsonpath = "$.items[*]"
+
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType),
+        th.Property("group_id", th.IntegerType),
+        th.Property("default_billing", th.StringType),
+        th.Property("default_shipping", th.StringType),
+        th.Property("confirmation", th.StringType),
+        th.Property("created_at", th.StringType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("created_in", th.StringType),
+        th.Property("dob", th.StringType),
+        th.Property("email", th.StringType),
+        th.Property("firstname", th.StringType),
+        th.Property("lastname", th.StringType),
+        th.Property("middlename", th.StringType),
+        th.Property("prefix", th.StringType),
+        th.Property("suffix", th.StringType),
+        th.Property("gender", th.IntegerType),
+        th.Property("store_id", th.IntegerType),
+        th.Property("taxvat", th.StringType),
+        th.Property("website_id", th.IntegerType),
+        th.Property("disable_auto_group_change", th.IntegerType),
+
+        th.Property("addresses", th.ArrayType(
+            th.ObjectType(
+                th.Property("id", th.IntegerType),
+                th.Property("customer_id", th.IntegerType),
+                th.Property("region", th.ObjectType()),  # region is an object
+                th.Property("region_id", th.IntegerType),
+                th.Property("country_id", th.StringType),
+                th.Property("street", th.ArrayType(th.StringType)),
+                th.Property("company", th.StringType),
+                th.Property("telephone", th.StringType),
+                th.Property("fax", th.StringType),
+                th.Property("postcode", th.StringType),
+                th.Property("city", th.StringType),
+                th.Property("firstname", th.StringType),
+                th.Property("lastname", th.StringType),
+                th.Property("middlename", th.StringType),
+                th.Property("prefix", th.StringType),
+                th.Property("suffix", th.StringType),
+                th.Property("vat_id", th.StringType),
+                th.Property("default_shipping", th.BooleanType),
+                th.Property("default_billing", th.BooleanType),
+                th.Property("extension_attributes", th.ObjectType()),
+                th.Property("custom_attributes", th.ArrayType(th.ObjectType()))
+            )
+        )),
+
+        th.Property("extension_attributes", th.ObjectType(
+            th.Property("company_attributes", th.ObjectType()),
+            th.Property("is_subscribed", th.BooleanType),
+            th.Property("assistance_allowed", th.IntegerType)
+        )),
+
+        th.Property("custom_attributes", th.ArrayType(
+            th.ObjectType(
+                th.Property("attribute_code", th.StringType),
+                th.Property("value", th.StringType)
+            )
+        ))
+    ).to_dict()
