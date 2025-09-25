@@ -336,13 +336,13 @@ class MagentoStream(RESTStream):
     
     def make_store_filter(self, store_id):
         if isinstance(store_id, str):
-            store_id = store_id.replace(" ", "")
+            store_id = store_id.split(",")
         if store_id:
-            return {
-                "searchCriteria[filterGroups][2][filters][0][field]": "store_id",
-                "searchCriteria[filterGroups][2][filters][0][value]": store_id,
-                "searchCriteria[filterGroups][2][filters][0][condition_type]": "in"
-            }
+            params = {}
+            for idx, store in enumerate(store_id):
+                params[f"searchCriteria[filterGroups][2][filters][{idx}][field]"] = "store_id"
+                params[f"searchCriteria[filterGroups][2][filters][{idx}][value]"] = store
+            return params
         return {}
 
     def get_start_date(self):
