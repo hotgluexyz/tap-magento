@@ -3,11 +3,11 @@
 import backoff
 import logging
 import requests
-
+import copy
 from pathlib import Path
 from typing import Any, Optional, Callable, Iterable, cast
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
@@ -202,33 +202,39 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
+
             params["order_by"] = self.replication_key
         
         if context.get("store_id"):
-            filter_idx = 0
-            if self.replication_key:
-                filter_idx + 1
-            
-            # This is just a workaround, magento doesn't support store_code very well.
-            # In 80% of the cases, this workaround should work, on some other cases it
-            # will fail.
-            # More info on: https://github.com/magento/magento2/issues/15461
-            if self.config.get("fetch_all_stores"):
-                params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
-            ] = "store_id"
-                params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
-                ] = int(context.get("store_id"))
-                
-            elif self.config.get("store_id"):
-                params[
-                f"searchCriteria[filterGroups][0][filters][{filter_idx}][field]"
-            ] = "store_id"
-                params[
-                    f"searchCriteria[filterGroups][0][filters][{filter_idx}][value]"
-                ] = self.config.get("store_id")
+            params.update(self.get_store_filter_params(context))
 
+        return params
+    
+    def get_store_filter_params(self, context):
+        params = {}
+        filter_idx = 0
+        if self.replication_key:
+            filter_idx += 1
+        
+        # This is just a workaround, magento doesn't support store_code very well.
+        # In 80% of the cases, this workaround should work, on some other cases it
+        # will fail.
+        # More info on: https://github.com/magento/magento2/issues/15461
+        if self.config.get("fetch_all_stores"):
+            params[
+            f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][field]"
+        ] = "store_id"
+            params[
+                f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][value]"
+            ] = int(context.get("store_id"))
+            
+        elif self.config.get("store_id"):
+            params[
+            f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][field]"
+        ] = "store_id"
+            params[
+                f"searchCriteria[filterGroups][{filter_idx}][filters][{filter_idx}][value]"
+            ] = self.config.get("store_id")
         return params
 
     def validate_response(self, response: requests.Response) -> None:
@@ -263,6 +269,9 @@ class MagentoStream(RESTStream):
             return []
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
 
+    def on_backoff(self, details):
+        self.logger.info(f"Backing off after {details['tries']} tries")
+
     def request_decorator(self, func: Callable) -> Callable:
         """Instantiate a decorator for handling request failures."""
         decorator: Callable = backoff.on_exception(
@@ -270,6 +279,7 @@ class MagentoStream(RESTStream):
             (RetriableAPIError, requests.exceptions.ReadTimeout, ConnectionError),
             max_tries=8,
             factor=2,
+            on_backoff=self.on_backoff,
         )(func)
         return decorator
     
@@ -291,3 +301,150 @@ class MagentoStream(RESTStream):
             if not use_stock_statuses:
                 return []
         super()._sync_records(context=context)
+
+    @property
+    def selected_fields(self):
+        selected_fields = [
+            b[1] for b, v 
+            in self._tap_input_catalog.get(self.name).metadata.items() 
+            if len(b) > 1 and b[0] == 'properties' and v.selected]
+        return selected_fields
+
+
+class ChunkedQueryMagentoStream(MagentoStream):
+    """Chunked query Magento stream."""
+
+
+    request_segment_size = 24 # Hours
+    @property
+    def replication_key(self):
+        raise NotImplementedError("Replication key is required for chunked query streams")
+    
+
+
+    def get_url_params(self, context, next_page_token):
+        params = super().get_url_params(context, next_page_token)
+        filter_keys = [key for key in params.keys() if key.startswith("searchCriteria[filterGroups]") and key.endswith("[field]")]
+        existing_filter_count = len(filter_keys)
+        start_date = context.get("chunk_start_date")
+        end_date = context.get("chunk_end_date")
+
+        start_date_filter_index = 0
+        end_date_filter_index = existing_filter_count
+
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][value]"] = start_date
+        params[f"searchCriteria[filterGroups][{start_date_filter_index}][filters][0][condition_type]"] = "gt"
+        
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][field]"] = self.replication_key
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][value]"] = end_date
+        params[f"searchCriteria[filterGroups][{end_date_filter_index}][filters][{end_date_filter_index}][condition_type]"] = "lteq"
+        
+        params.pop("order_by")
+        params["order_by"] = self.replication_key
+
+        params["fields"] = f"items[{','.join(self.selected_fields)}],total_count,search_criteria"
+
+        return params
+    
+    def get_ending_timestamp(self):
+        if self.config.get("end_date"):
+            return self.config.get("end_date")
+        else:
+            now = datetime.now(timezone.utc)
+            return now
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        ultimate_start_date = self.get_starting_timestamp(context)
+        ultimate_end_date = self.get_ending_timestamp()
+        decorated_request = self.request_decorator(self._request)
+        oldest_record_timestamp = self.get_record_timerange(context, decorated_request)
+        if not oldest_record_timestamp: # No records found
+            return
+        # Query from oldest data at most
+        if not ultimate_start_date or oldest_record_timestamp > ultimate_start_date:
+            ultimate_start_date = oldest_record_timestamp
+        
+        start_date = ultimate_start_date
+        while start_date < ultimate_end_date:
+            end_date = start_date + timedelta(hours=self.request_segment_size)
+            if end_date > ultimate_end_date:
+                end_date = ultimate_end_date
+
+            next_page_token: Any = None
+            chunk_finished = False
+
+            context["chunk_start_date"] = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            context["chunk_end_date"] = end_date.strftime("%Y-%m-%d %H:%M:%S")
+            while not chunk_finished:
+                prepared_request = self.prepare_request(
+                    context, next_page_token=next_page_token
+                )
+                resp = decorated_request(prepared_request, context)
+                yield from self.parse_response(resp)
+                previous_token = copy.deepcopy(next_page_token)
+                next_page_token = self.get_next_page_token(
+                    response=resp, previous_token=previous_token
+                )
+                if next_page_token and next_page_token == previous_token:
+                    raise RuntimeError(
+                        f"Loop detected in pagination. "
+                        f"Pagination token {next_page_token} is identical to prior token."
+                    )
+                # Cycle until get_next_page_token() no longer returns a value
+                chunk_finished = not next_page_token
+
+            start_date = end_date
+
+
+    def get_record_timerange(self, context, decorated_request):
+        params = {
+            "searchCriteria[pageSize]": 1,
+            "searchCriteria[currentPage]": 1,
+            "fields": f"items[{self.replication_key}],total_count,search_criteria",
+            "searchCriteria[sortOrders][0][field]": self.replication_key,
+            "searchCriteria[sortOrders][0][direction]": "ASC",
+        }
+
+        if context.get("store_id"):
+            params.update(self.get_store_filter_params(context))
+
+        http_method = self.rest_method
+        url = self.get_url(context)
+        headers = self.http_headers
+
+        authenticator = self.authenticator
+        if authenticator:
+            headers.update(authenticator.auth_headers or {})
+            params.update(authenticator.auth_params or {})
+
+        oldest_record_request = self.requests_session.prepare_request(
+                requests.Request(
+                    method=http_method,
+                    url=url,
+                    params=params,
+                    headers=headers,
+                ),
+        )
+
+        if self.config.get("use_oauth"):
+            oauth = OAuth1(
+                self.config.get('consumer_key'),
+                client_secret=self.config.get('consumer_secret'),
+                resource_owner_key=self.config.get("oauth_token", self.config.get("access_token")),
+                resource_owner_secret=self.config.get("oauth_token_secret", self.config.get("access_token_secret")),
+            )
+            oldest_record_request.auth = oauth
+
+        
+        old_resp = decorated_request(oldest_record_request, context)
+    
+        oldest_record_list = old_resp.json().get("items", [])
+        
+        
+        if not oldest_record_list:
+            return None
+        
+        oldest_timestamp = oldest_record_list[0].get(self.replication_key)
+        oldest_timestamp = datetime.strptime(oldest_timestamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        return oldest_timestamp
