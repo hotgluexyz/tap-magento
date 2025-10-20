@@ -458,6 +458,12 @@ class MagentoStream(RESTStream):
                 else:
                     self.retries_500_status = self.retries_500_status + 1     
             raise RetriableAPIError(msg)
+        
+        # if response has a valid status code, check if response is a valid json otherwise retry
+        try:
+            response.json()
+        except Exception as e:
+            raise RetriableAPIError(f"Invalid JSON response from {response.request.url}. {e}. Retrying...")
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
         """Parse the response and return an iterator of result rows."""
