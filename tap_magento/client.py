@@ -530,16 +530,21 @@ class MagentoStream(RESTStream):
                 return []
         super()._sync_records(context=context)
     
+    def prepare_and_request(self, context: Optional[dict], next_page_token: Any):
+        prepared_request = self.prepare_request(
+            context, next_page_token=next_page_token
+        )
+        return self._request(prepared_request, context)
+
     def request_records(self, context: Optional[dict]) -> Iterable[dict]:
         next_page_token: Any = None
         finished = False
-        decorated_request = self.request_decorator(self._request)
+        # use request decorator for prepare_and_request because on backoff we
+        # need to prepare the request again in order to create a new OAuth1 nounce
+        decorated_request = self.request_decorator(self.prepare_and_request)
 
-        while not finished:
-            prepared_request = self.prepare_request(
-                context, next_page_token=next_page_token
-            )
-            resp = decorated_request(prepared_request, context)
+        while not finished:            
+            resp = decorated_request(context, next_page_token)
 
             for row in self.parse_response(resp):
                 yield row
