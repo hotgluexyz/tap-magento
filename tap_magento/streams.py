@@ -1,6 +1,7 @@
 """Stream type classes for tap-magento."""
 import requests
 import pendulum
+from datetime import datetime, timezone
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
@@ -57,7 +58,8 @@ class StoresStream(MagentoStream):
     def get_child_context(self, record, context):
         return {
             "store_id": str(record["id"]),#We don't want default 0 store to be skipped
-            "store_code": str(record["code"])
+            "store_code": str(record["code"]),
+            "base_currency_code": str(record["base_currency_code"])
         }
 
     def get_next_page_token(self, response, previous_token):
@@ -334,6 +336,49 @@ class ProductsStream(MagentoStream):
             "store_code": context["store_code"]
         }
 
+class ProductPricesStream(MagentoStream):
+    name = "product_prices"
+    path = "/{store_code}/V1/products-render-info"
+    primary_keys = ["id", "store_id"]
+    replication_key = "updated_at"
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_datetime = datetime.now(timezone.utc)
+
+    schema = th.PropertiesList(
+        th.Property("id", th.NumberType),
+        th.Property("url", th.StringType),
+        th.Property("store_id", th.StringType),
+        th.Property("name", th.StringType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property(
+            "extension_attributes", th.CustomType({"type": ["object", "string"]})
+        ),
+        th.Property(
+            "price_info",
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
+        )
+    ).to_dict()
+
+    def get_url_params(self, context, next_page_token):
+
+        """
+        Overwrites get_url_params to add support for order_ids filtering
+        """
+        params = super().get_url_params(context, next_page_token)
+        params[
+            "storeId"
+        ] = context["store_id"]
+        params["currencyCode"] = context["base_currency_code"]
+
+        return params
+
+    def post_process(self, row, context):
+        row["updated_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        return row
 
 class ProductAttributesStream(MagentoStream):
     name = "product_attributes"
