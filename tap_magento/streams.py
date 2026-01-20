@@ -337,8 +337,8 @@ class ProductsStream(MagentoStream):
             "store_code": context["store_code"]
         }
 
-class ProductPricesStream(MagentoStream):
-    name = "product_prices"
+class ProductsRenderInfoStream(MagentoStream):
+    name = "products_render_info"
     path = "/{store_code}/V1/products-render-info"
     primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
@@ -355,6 +355,8 @@ class ProductPricesStream(MagentoStream):
         th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
         th.Property("updated_at", th.DateTimeType),
+        th.Property("currency_code", th.StringType),
+        th.Property("is_salable", th.StringType),
         th.Property(
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
         ),
