@@ -351,15 +351,14 @@ class ProductPricesStream(MagentoStream):
     schema = th.PropertiesList(
         th.Property("id", th.NumberType),
         th.Property("url", th.StringType),
-        th.Property("store_id", th.StringType),
+        th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
         th.Property("updated_at", th.DateTimeType),
         th.Property(
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
         ),
         th.Property(
-            "price_info",
-            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
+            "price_info", th.CustomType({"type": ["string", "object"]}),
         )
     ).to_dict()
 
