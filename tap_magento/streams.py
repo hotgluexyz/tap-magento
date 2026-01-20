@@ -1,5 +1,4 @@
 """Stream type classes for tap-magento."""
-from math import e
 import requests
 import pendulum
 from datetime import datetime, timezone
