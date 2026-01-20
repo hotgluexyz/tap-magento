@@ -24,7 +24,8 @@ from tap_magento.streams import (
     SourceItemsStream,
     CartsStream,
     CreditMemosStream,
-    CustomersStream
+    CustomersStream,
+    ProductPricesStream
 )
 
 
@@ -46,7 +47,8 @@ STREAM_TYPES = [
     SourceItemsStream,
     CartsStream,
     CreditMemosStream,
-    CustomersStream
+    CustomersStream,
+    ProductPricesStream
 ]
 
 
