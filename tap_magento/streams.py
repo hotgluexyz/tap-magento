@@ -337,8 +337,8 @@ class ProductsStream(MagentoStream):
             "store_code": context["store_code"]
         }
 
-class ProductPricesStream(MagentoStream):
-    name = "product_prices"
+class ProductsRenderInfoStream(MagentoStream):
+    name = "products_render_info"
     path = "/{store_code}/V1/products-render-info"
     primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
