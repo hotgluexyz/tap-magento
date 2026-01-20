@@ -1,4 +1,5 @@
 """Stream type classes for tap-magento."""
+from math import e
 import requests
 import pendulum
 from datetime import datetime, timezone
@@ -336,8 +337,8 @@ class ProductsStream(MagentoStream):
             "store_code": context["store_code"]
         }
 
-class ProductsRenderInfoStream(MagentoStream):
-    name = "products_render_info"
+class ProductPricesStream(MagentoStream):
+    name = "product_prices"
     path = "/{store_code}/V1/products-render-info"
     primary_keys = ["id", "store_id"]
     replication_key = "updated_at"
