@@ -1,4 +1,5 @@
 """Stream type classes for tap-magento."""
+from math import e
 import requests
 import pendulum
 from datetime import datetime, timezone
@@ -358,7 +359,7 @@ class ProductPricesStream(MagentoStream):
             "extension_attributes", th.CustomType({"type": ["object", "string"]})
         ),
         th.Property(
-            "price_info", th.CustomType({"type": ["string", "object"]}),
+            "price_info", th.CustomType({"type": ["object", "string"]}),
         )
     ).to_dict()
 
@@ -372,12 +373,25 @@ class ProductPricesStream(MagentoStream):
             "storeId"
         ] = context["store_id"]
         params["currencyCode"] = context["base_currency_code"]
+        params["searchCriteria[sortOrders][0][field]"] = "url"
+        params["searchCriteria[sortOrders][0][direction]"] = "ASC"
 
         return params
 
     def post_process(self, row, context):
         row["updated_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         return row
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        """Return a token for identifying next page or None if no more pages."""
+        next_page_token = None
+        response_json = response.json()
+        if len(response_json.get("items", [])) == self.page_size:
+            return (previous_token or 1) + 1
+        else:
+            return None
 
 class ProductAttributesStream(MagentoStream):
     name = "product_attributes"
