@@ -58,6 +58,7 @@ class MagentoStream(RESTStream):
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
         store_url = self.config["store_url"]
+        store_url = store_url if store_url.startswith("https://") or store_url.startswith("http://") else "https://" + store_url
         if store_url.endswith("/"):
             return f"{store_url}rest"
 
