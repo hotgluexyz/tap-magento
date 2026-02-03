@@ -47,6 +47,11 @@ class MagentoStream(RESTStream):
     last_store_code = None
     not_filterable_by_store = ["categories", "product_attributes", "salerules"] # these streams are not filterable because don't have the field store_id
 
+    allowed_error_messages = [
+        "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.",
+        "The requested product does not exist. Please check the product and try again."
+        ]
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.config.get("custom_cookies"):
@@ -194,7 +199,7 @@ class MagentoStream(RESTStream):
             first_match = next(iter(all_matches), None)
             next_page_token = first_match
         # return 1 only when iterating daily due to error with missing products in orders
-        elif response.status_code in [404] and self.error_message == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
+        elif response.status_code in [404] and self.error_message in self.allowed_error_messages:
             return 1
         elif response.status_code in [503, 404]:
             return None
@@ -410,8 +415,8 @@ class MagentoStream(RESTStream):
         if response.status_code in [404]:
             try:
                 response_json = response.json()
-                if self.replication_key and response_json.get("message") == "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
-                    self.error_message = "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw."
+                if self.replication_key and response_json.get("message") in self.allowed_error_messages:
+                    self.error_message = response_json.get("message")
                     self.binary_search = True
                     if not self.new_start_date:
                         self.logger.info("Response status code: {} with response {} - Calculating new start_date".format(response.status_code, response.text))
@@ -423,6 +428,8 @@ class MagentoStream(RESTStream):
                         # add a day and iterate
                         greatest_date = greatest_date + timedelta(days=1)
                         self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    raise FatalAPIError(f"Error {response.status_code} from {response.url}, response: {response.text}")
             except JSONDecodeError:
                 msg = (
                     f"Received non-JSON response from {self.path}. "
@@ -554,7 +561,7 @@ class MagentoStream(RESTStream):
                 response=resp, previous_token=previous_token
             )
             # when iterating daily due to missing products 404 error there could be same next_page_token 1
-            if next_page_token and next_page_token == previous_token and self.error_message != "Het aangevraagde product bestaat niet. Controleer het product en probeer het opnieuw.":
+            if next_page_token and next_page_token == previous_token and self.error_message not in self.allowed_error_messages:
                 raise RuntimeError(
                     f"Loop detected in pagination. "
                     f"Pagination token {next_page_token} is identical to prior token."
