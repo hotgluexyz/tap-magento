@@ -341,7 +341,7 @@ class ProductsRenderInfoStream(MagentoStream):
     name = "products_render_info"
     path = "/{store_code}/V1/products-render-info"
     primary_keys = ["id", "store_id"]
-    replication_key = "updated_at"
+    replication_key = None
     parent_stream_type = StoresStream
     ignore_parent_replication_key = True
 
@@ -354,7 +354,7 @@ class ProductsRenderInfoStream(MagentoStream):
         th.Property("url", th.StringType),
         th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
-        th.Property("updated_at", th.DateTimeType),
+        th.Property("hg_fetched_at", th.DateTimeType),
         th.Property("currency_code", th.StringType),
         th.Property("is_salable", th.StringType),
         th.Property(
@@ -381,7 +381,7 @@ class ProductsRenderInfoStream(MagentoStream):
         return params
 
     def post_process(self, row, context):
-        row["updated_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         return row
 
     def get_next_page_token(
