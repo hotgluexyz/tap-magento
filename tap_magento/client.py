@@ -441,6 +441,10 @@ class MagentoStream(RESTStream):
             msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
             self.logger.info(msg)
             raise RetriableAPIError(msg)
+        elif response.status_code == 504:
+            raise RetriableAPIError(
+                f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
+            )
         elif response.status_code == 403 or "cf-error-details" in response.text:
             resp_text = extract_text_from_html(response.text)
             raise FatalAPIError(resp_text)
