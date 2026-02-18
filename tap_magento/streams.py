@@ -3,7 +3,6 @@ from math import e
 import requests
 import pendulum
 from datetime import datetime, timezone
-import copy
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
