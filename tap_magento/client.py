@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, Callable, Iterable, cast
 
 from datetime import datetime, timedelta
 from simplejson.scanner import JSONDecodeError
-from singer_sdk.streams import RESTStream, GraphQLStream
+from singer_sdk.streams import RESTStream
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.authenticators import BearerTokenAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
@@ -155,7 +155,9 @@ class MagentoStream(RESTStream):
             url: str = self.get_url(context)
             params: dict = self.get_url_params(context, next_page_token)
             request_data = self.prepare_request_payload(context, next_page_token)
-            headers = self.get_http_headers(context)
+            headers = self.http_headers
+            headers.update(self.get_additional_headers_with_context(context))
+
             # Generate a new OAuth1 session
             client = self.get_oauth1_session()
 
@@ -177,7 +179,8 @@ class MagentoStream(RESTStream):
 
         return request
 
-    def get_http_headers(self, context: Optional[dict]) -> dict:
+    @property
+    def http_headers(self) -> dict:
         """Return the http headers needed."""
         headers = {
             "Content-Type": "application/json",
@@ -185,6 +188,10 @@ class MagentoStream(RESTStream):
         if "user_agent" in self.config:
             headers["User-Agent"] = self.config.get("user_agent")
         return headers
+
+    def get_additional_headers_with_context(self, context: Optional[dict]) -> dict:
+        """Return the additional headers needed."""
+        return {}
 
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
@@ -356,7 +363,7 @@ class MagentoStream(RESTStream):
 
         def make_request(start_date):
             url = self.get_url(None)
-            headers = self.get_http_headers(None)
+            headers = self.http_headers
             start_date = datetime.fromtimestamp(start_date).strftime("%Y-%m-%d %H:%M:%S")
 
             params = self.get_url_params(None, None)

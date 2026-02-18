@@ -49,8 +49,6 @@ class StoresStream(MagentoStream):
             store_ids = store_ids_all
 
         for store_id in store_ids:
-            if store_id != 3:
-                continue
             if isinstance(store_id, int) and store_id and store_id in stores_by_id:
                 yield stores_by_id[store_id]
             elif isinstance(store_id, str) and store_id and store_id in stores_by_id:
@@ -539,13 +537,10 @@ class PricesStream(MagentoStream):
                 },
             }
 
-
-    def get_http_headers(self, context: {}) -> dict:
-        # Necessary for the graphql endpoint to work.
+    def get_additional_headers_with_context(self, context: {}) -> dict:
         headers = super().http_headers
         headers["store"] = context["store_code"]
         return headers
-
 
     def get_url_params(self, context, next_page_token):
         return {}
