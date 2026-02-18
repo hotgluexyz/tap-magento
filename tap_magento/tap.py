@@ -25,11 +25,7 @@ from tap_magento.streams import (
     CartsStream,
     CreditMemosStream,
     CustomersStream,
-    ProductVisibility_1Stream,
-    ProductPricesVisibility_1_Stream,
-    ProductPricesVisibility_2_4Stream,
-    ProductVisibility_3Stream,
-    ProductPricesVisibility_3Stream,
+    PricesStream
 )
 
 
@@ -52,11 +48,7 @@ STREAM_TYPES = [
     CartsStream,
     CreditMemosStream,
     CustomersStream,
-    ProductVisibility_1Stream,
-    ProductPricesVisibility_1_Stream,
-    ProductPricesVisibility_2_4Stream,
-    ProductVisibility_3Stream,
-    ProductPricesVisibility_3Stream,
+    PricesStream
 ]
 
 
