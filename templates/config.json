@@ -1,0 +1,26 @@
+{
+  "store_url": "https://your-store.magento.cloud",
+  "username": "api_user",
+  "password": "xxxxxxxxxxxxxxxxx",
+  "access_token": "xxxxxxxxxxxxxxxxx",
+  "start_date": "2020-01-01T00:00:00Z",
+  "end_date": "2025-12-31T23:59:59Z",
+  "use_oauth": false,
+  "consumer_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "consumer_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "oauth_token": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "oauth_token_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "access_token_secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "user_agent": "tap-magento/1.0.0",
+  "page_size": 300,
+  "source_items_page_size": 2000,
+  "crawl_delay": 0,
+  "store_id": "1,2,3",
+  "fetch_all_stores": false,
+  "order_ids": [],
+  "use_inventory_source_items": true,
+  "use_item_stock": true,
+  "custom_cookies": {
+    "cookie_name": "cookie_value"
+  }
+}
