@@ -355,6 +355,66 @@ class ProductsStream(MagentoStream):
             previous_context = prices_child_stream.current_batch_context_dict.get(previous_key)
             prices_child_stream._sync_records(previous_context)
 
+class ProductsRenderInfoStream(MagentoStream):
+    name = "products_render_info"
+    path = "/{store_code}/V1/products-render-info"
+    primary_keys = ["id", "store_id"]
+    replication_key = None
+    parent_stream_type = StoresStream
+    ignore_parent_replication_key = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_datetime = datetime.now(timezone.utc)
+
+    schema = th.PropertiesList(
+        th.Property("entity_id", th.NumberType),
+        th.Property("url", th.StringType),
+        th.Property("store_id", th.NumberType),
+        th.Property("name", th.StringType),
+        th.Property("hg_fetched_at", th.DateTimeType),
+        th.Property("currency_code", th.StringType),
+        th.Property("is_salable", th.StringType),
+        th.Property(
+            "extension_attributes", th.CustomType({"type": ["object", "string"]})
+        ),
+        th.Property(
+            "price_info", th.CustomType({"type": ["object", "string"]}),
+        )
+    ).to_dict()
+
+    def get_url_params(self, context, next_page_token):
+
+        """
+        Overwrites get_url_params to add support for order_ids filtering
+        """
+        params = super().get_url_params(context, next_page_token)
+        params[
+            "storeId"
+        ] = context["store_id"]
+        params["currencyCode"] = context["base_currency_code"]
+        params["searchCriteria[sortOrders][0][field]"] = "url"
+        params["searchCriteria[sortOrders][0][direction]"] = "ASC"
+
+        return params
+
+    def post_process(self, row, context):
+        row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        row["entity_id"] = row["id"]
+        row.pop("id")
+        return row
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        """Return a token for identifying next page or None if no more pages."""
+        next_page_token = None
+        response_json = response.json()
+        if len(response_json.get("items", [])) == self.page_size:
+            return (previous_token or 1) + 1
+        else:
+            return None
+
 class PricesStream(MagentoStream):
     """
     This stream is used to fetch the prices of products.
