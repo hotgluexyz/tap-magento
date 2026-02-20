@@ -413,8 +413,6 @@ class ProductsRenderInfoStream(MagentoStream):
 
     def post_process(self, row, context):
         row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        row["entity_id"] = row["id"]
-        row.pop("id")
         return row
 
     def get_next_page_token(
