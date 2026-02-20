@@ -371,7 +371,7 @@ class ProductsStream(MagentoStream):
 class ProductsRenderInfoStream(MagentoStream):
     name = "products_render_info"
     path = "/{store_code}/V1/products-render-info"
-    primary_keys = ["entity_id", "store_id"]
+    primary_keys = ["id", "store_id"]
     replication_key = None
     parent_stream_type = StoresStream
     ignore_parent_replication_key = True
@@ -381,7 +381,7 @@ class ProductsRenderInfoStream(MagentoStream):
         self.current_datetime = datetime.now(timezone.utc)
 
     schema = th.PropertiesList(
-        th.Property("entity_id", th.NumberType),
+        th.Property("id", th.NumberType),
         th.Property("url", th.StringType),
         th.Property("store_id", th.NumberType),
         th.Property("name", th.StringType),
@@ -435,7 +435,7 @@ class PricesStream(MagentoStream):
     It is used to fetch the prices of the products with visibility 3 by querying the graphql endpoint and searching for each individual SKU.
     It simply returns the prices of products with visibility 1 from the parent products stream (as we cannot get more price information).
     """
-    name = "product_prices"
+    name = "product_prices_graphql_enabled"
     path = ""
     primary_keys = ["id", "store_id"]
     parent_stream_type = ProductsStream
