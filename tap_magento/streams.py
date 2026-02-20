@@ -432,8 +432,9 @@ class PricesStream(MagentoStream):
     It is used to fetch the prices of the products with visibility 2 and 4 by querying the graphql endpoint normally.
     It is used to fetch the prices of the products with visibility 3 by querying the graphql endpoint and searching for each individual SKU.
     It simply returns the prices of products with visibility 1 from the parent products stream (as we cannot get more price information).
+    Note that the store must have full (products) GraphQL permissions enabled to use this stream.
     """
-    name = "product_prices_graphql_enabled"
+    name = "product_prices"
     path = ""
     primary_keys = ["id", "store_id"]
     parent_stream_type = ProductsStream
@@ -796,6 +797,15 @@ class PricesStream(MagentoStream):
             "currency_code": context["base_currency_code"],
             "name": context["product_name"]
         }
+
+    def validate_response(self, response: requests.Response) -> None:
+        try:
+            super().validate_response(response)
+        except Exception as e:
+            if response.status_code == 500:
+                raise type(e)(f"{e}. You might not have full (products) GraphQL permissions enabled in your store.") from e
+            else:
+                raise e
 
     def get_records(self, context: Optional[dict]) -> Iterable[dict]:
 
