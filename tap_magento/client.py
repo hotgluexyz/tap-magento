@@ -156,6 +156,8 @@ class MagentoStream(RESTStream):
             params: dict = self.get_url_params(context, next_page_token)
             request_data = self.prepare_request_payload(context, next_page_token)
             headers = self.http_headers
+            headers.update(self.get_additional_headers_with_context(context))
+
             # Generate a new OAuth1 session
             client = self.get_oauth1_session()
 
@@ -186,6 +188,10 @@ class MagentoStream(RESTStream):
         if "user_agent" in self.config:
             headers["User-Agent"] = self.config.get("user_agent")
         return headers
+
+    def get_additional_headers_with_context(self, context: Optional[dict]) -> dict:
+        """Return the additional headers needed."""
+        return {}
 
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
