@@ -539,7 +539,7 @@ class PricesStream(MagentoStream):
                 }
             }
             ... on BundleProduct {
-                bundleItems: items {
+                bundle_items: items {
                     sku
                     title
                     options {
@@ -705,10 +705,10 @@ class PricesStream(MagentoStream):
         product["bundle_parent_sku"] = None
         product["variant_parent_sku"] = None
 
-        bundle_items = product.get("bundleItems", [])
+        bundle_items = product.get("bundle_items", [])
         current_bundle_child = product
-        if "bundleItems" in current_bundle_child:
-            current_bundle_child.pop("bundleItems")
+        if "bundle_items" in current_bundle_child:
+            current_bundle_child.pop("bundle_items")
 
         for bundle_item in bundle_items:
             for option in bundle_item.get("options", []):
@@ -783,9 +783,6 @@ class PricesStream(MagentoStream):
         th.Property(
             "bundle_items", th.ArrayType(th.CustomType({"type": ["object", "string"]})),
         ),
-        th.Property(
-            "grouped_items", th.ArrayType(th.CustomType({"type": ["object", "string"]})),
-        )
     ).to_dict()
 
     def row_from_context(self, context: dict) -> dict:
