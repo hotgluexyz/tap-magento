@@ -334,8 +334,39 @@ class ProductsStream(MagentoStream):
             "product_sku": record["sku"],
             "product_status": record["status"],
             "store_id": context["store_id"],
-            "store_code": context["store_code"]
+            "store_code": context["store_code"],
+            "product_id": record["id"],
+            "base_currency_code": context["base_currency_code"],
+            "visibility": record["visibility"],
+            "product_id": record["id"],
+            "product_price": record["price"],
+            "product_name": record["name"],
+            "tier_prices": record.get("tier_prices", [])
         }
+
+    def sync(self, context=None):
+        super().sync(context)
+        # Clear the batch (cache) for the prices stream
+        prices_child_stream = next(s for s in self._tap.streams.values() if isinstance(s, PricesStream))
+        
+        if prices_child_stream.current_batch_context_dict:
+            prices_child_stream.BATCH_SIZE = 0
+            previous_key = list(prices_child_stream.current_batch_context_dict.keys())[-1]
+            previous_context = prices_child_stream.current_batch_context_dict.get(previous_key)
+            prices_child_stream._sync_records(previous_context)
+        for sku, context in prices_child_stream.skus_with_visibility_1_this_store_dict.items():
+            if sku in prices_child_stream.skus_variants_bundles_this_store_dict:
+                continue
+            prices_child_stream.current_visibility = 1
+            prices_child_stream.clearing_visibility_1_skus = True
+            prices_child_stream._sync_records(context)
+
+        prices_child_stream.current_batch_context_dict = {}
+
+        prices_child_stream.clearing_visibility_1_skus = False
+        prices_child_stream.skus_with_visibility_1_this_store_dict = {}
+        prices_child_stream.skus_variants_bundles_this_store_dict = {}
+        prices_child_stream.processed_skus_this_store = []
 
 class ProductsRenderInfoStream(MagentoStream):
     name = "products_render_info"
@@ -394,6 +425,468 @@ class ProductsRenderInfoStream(MagentoStream):
             return (previous_token or 1) + 1
         else:
             return None
+
+class PricesStream(MagentoStream):
+    """
+    This stream is used to fetch the prices of products.
+    It is used to fetch the prices of the products with visibility 2 and 4 by querying the graphql endpoint normally.
+    It is used to fetch the prices of the products with visibility 3 by querying the graphql endpoint and searching for each individual SKU.
+    It simply returns the prices of products with visibility 1 from the parent products stream (as we cannot get more price information).
+    Note that the store must have full (products) GraphQL permissions enabled to use this stream.
+    """
+    name = "product_prices"
+    path = ""
+    primary_keys = ["id", "store_id"]
+    parent_stream_type = ProductsStream
+    ignore_parent_replication_key = True
+    replication_key = None
+    skus_with_visibility_1_this_store_dict = {}
+    skus_variants_bundles_this_store_dict = {}
+
+    # Used to clear the cache of visibility 1 skus at end (to avoid fetching the same skus again)
+    clearing_visibility_1_skus = False
+    processed_skus_this_store = []
+
+    # Don't remove, otherwise you will have a memory leak with context growing for each record.
+    state_partitioning_keys = ["store_id"]
+    current_visibility = None
+
+    # Keeps track of which store ids have been queried for all products with visibility 2 and 4.
+    fetched_store_ids_visibility_2_4 = []
+
+    # Size of query batches for the search (visibility 3) endpoint.
+    BATCH_SIZE = 3
+    
+    # Set individually for each visibility
+    records_jsonpath = "$.data.products.items[*]"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_batch_context_dict: dict = {}
+        self.current_datetime = datetime.now(timezone.utc)
+        self.rest_method = "GET"
+
+
+    @property
+    def url_base(self) -> str:
+        original_url_base = super().url_base
+
+        if self.current_visibility == 1:
+            self.records_jsonpath = "$.items[*]"
+            return original_url_base
+
+
+        if self.current_visibility == 3:
+            self.records_jsonpath = "$.data[*]"
+        else:
+            self.records_jsonpath = "$.data.products.items[*]"
+       
+        return original_url_base.replace("rest", "graphql")
+
+    def get_next_page_token(self, response, previous_token):
+        if self.current_visibility in [1, 3]:
+            return None
+
+        data = response.json()
+        page_info = data["data"]["products"]["page_info"]
+        if page_info["current_page"] >= page_info["total_pages"]:
+            return None
+        return page_info["current_page"] + 1
+
+    GRAPHQL_FIELDS = """
+            id
+            uid
+            name
+            sku
+            url_key
+            type_id
+            price_range {
+                minimum_price {
+                    regular_price { value currency }
+                    final_price { value currency }
+                    discount { amount_off percent_off }
+                }
+                maximum_price {
+                    regular_price { value currency }
+                    final_price { value currency }
+                }
+            }
+            price_tiers {
+                quantity
+                final_price { value currency }
+                discount { amount_off percent_off }
+            }
+            ... on ConfigurableProduct {
+                variants {
+                    product {
+                        id
+                        uid
+                        sku
+                        name
+                        url_key
+                        type_id
+                        price_range {
+                            minimum_price {
+                                regular_price { value currency }
+                                final_price { value currency }
+                            }
+                        }
+                    }
+                    attributes {
+                        label
+                        code
+                        value_index
+                    }
+                }
+            }
+            ... on BundleProduct {
+                bundle_items: items {
+                    sku
+                    title
+                    options {
+                        label
+                        quantity
+                        product {
+                            id
+                            uid
+                            sku
+                            name
+                            url_key
+                            type_id
+                            price_range {
+                                minimum_price {
+                                    final_price { value currency }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    """
+
+    def prepare_request_payload(self, context, next_page_token):
+        if self.current_visibility == 1:
+            return super().prepare_request_payload(context, next_page_token)
+        elif self.current_visibility == 3:
+            # Query the graphql endpoint for each SKU in the current batch.
+            fields = "items { " + self.GRAPHQL_FIELDS.replace('\n', ' ').replace('  ', ' ').strip() + " }"
+
+            many_sku_query = "\n".join(
+                f'product_{i}: products(search: "{sku}", filter: {{ sku: {{ eq: "{sku}" }} }}) {{ {fields} }}'
+                for i, sku in enumerate(self.current_batch_context_dict.keys())
+            )
+            
+            many_sku_query = f"{{ {many_sku_query} }}"
+            payload = {
+                "query": many_sku_query
+            }
+            return payload
+        elif self.current_visibility in [2, 4]:
+            # Query the graphql endpoint for all products with visibility 2 and 4 on current store id.
+            return {
+                "query": f"""
+                    query getProducts($current_page: Int, $page_size: Int) {{
+                        products(
+                            pageSize: $page_size
+                            currentPage: $current_page
+                            filter: {{}}
+                        ) {{
+                            total_count
+                            page_info {{
+                                page_size
+                                current_page
+                                total_pages
+                            }}
+                            items {{
+                                {self.GRAPHQL_FIELDS}
+                            }}
+                        }}
+                    }}""",
+                "variables": {
+                    "page_size": max(self.default_page_size//2, 1),
+                    "current_page": next_page_token or 1,
+                },
+            }
+        else:
+            return {}
+
+    def get_additional_headers_with_context(self, context: {}) -> dict:
+        headers = super().http_headers
+        headers["store"] = context["store_code"]
+        return headers
+
+    def get_url_params(self, context, next_page_token):
+        return {}
+
+    def post_process(self, row, context):
+        row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+        
+        if self.current_visibility in [2, 4]:
+            if "status" in row and row["status"] == 2:
+                # Status = 2 means the product is disabled, so we can't get any price information.
+                row["price_null_deactivated_status"] = True
+            else:
+                row["price_null_deactivated_status"] = False
+            row["store_id"] = context["store_id"]
+            row["store_code"] = context["store_code"]
+            row["currency_code"] = context["base_currency_code"]
+            if row["sku"] not in self.processed_skus_this_store:
+                self.processed_skus_this_store.append(row["sku"])
+            return row
+        elif self.current_visibility == 3:
+
+            # Make sure we are using the right store id for variants, bundles, and main products.
+            if row["sku"] in self.current_batch_context_dict:
+                current_context = self.current_batch_context_dict[row["sku"]]
+            elif "variant_parent_sku" in row and row["variant_parent_sku"] in self.current_batch_context_dict:
+                current_context = self.current_batch_context_dict[row["variant_parent_sku"]]
+            elif "bundle_parent_sku" in row and row["bundle_parent_sku"] in self.current_batch_context_dict:
+                current_context = self.current_batch_context_dict[row["bundle_parent_sku"]]
+            else:
+                current_context = list(self.current_batch_context_dict.values())[-1]
+            row["store_id"] = current_context["store_id"]
+            row["store_code"] = current_context["store_code"]
+            row["currency_code"] = current_context["base_currency_code"]
+            return row
+        elif self.current_visibility == 1:
+            if context["product_status"] == 2:
+                row["price_null_deactivated_status"] = True
+            else:
+                row["price_null_deactivated_status"] = False
+            row["invisible_in_catalog_and_search"] = True
+            row["price_no_special"] = context["product_price"]
+            row["tier_prices"] = context["tier_prices"]
+            return row
+        else:
+            return row
+
+
+    def deal_with_bundle_and_variants(self, product: dict):
+        # Yield the main product
+        product["is_variant"] = False
+        product["is_part_of_bundle"] = False
+        product["bundle_parent_sku"] = None
+        product["variant_parent_sku"] = None
+
+        # this happens for bundle parent products
+        if "title" in product:
+            product["name"] = product["title"]
+        yield product
+
+        parent_sku = product["sku"]
+
+        # Go through each variant and yield it.
+        variants_list = product.get("variants", [])
+
+        # this is a shallow copy, just makes it easier to read
+        current_variant = product
+        if "variants" in current_variant:
+            current_variant.pop("variants")
+
+        for variant in variants_list:
+            current_variant["is_variant"] = True
+            current_variant["variant_parent_sku"] = parent_sku
+            current_variant["id"] = variant["product"]["id"]
+            current_variant["uid"] = variant["product"].get("uid")
+            current_variant["url_key"] = variant["product"].get("url_key")
+            current_variant["sku"] = variant["product"]["sku"]
+            current_variant["name"] = variant["product"]["name"]
+            current_variant["price_range"] = variant["product"]["price_range"]
+            current_variant["attributes"] = variant.get("attributes", [])
+            current_variant["created_at"] = variant["product"].get("created_at")
+            current_variant["updated_at"] = variant["product"].get("updated_at")
+
+            if variant["product"]["sku"] not in self.skus_variants_bundles_this_store_dict:
+                self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
+                yield current_variant
+
+        # Handle bundle children
+        product["is_variant"] = False
+        product["is_part_of_bundle"] = False
+        product["bundle_parent_sku"] = None
+        product["variant_parent_sku"] = None
+
+        bundle_items = product.get("bundle_items", [])
+        current_bundle_child = product
+        if "bundle_items" in current_bundle_child:
+            current_bundle_child.pop("bundle_items")
+
+        for bundle_item in bundle_items:
+            for option in bundle_item.get("options", []):
+                bundle_product = option.get("product")
+                if bundle_product:
+                    current_bundle_child["is_variant"] = True
+                    current_bundle_child["bundle_parent_sku"] = parent_sku
+                    current_bundle_child["id"] = bundle_product["id"]
+                    current_bundle_child["uid"] = bundle_product.get("uid")
+                    current_bundle_child["url_key"] = bundle_product.get("url_key")
+                    current_bundle_child["sku"] = bundle_product["sku"]
+                    current_bundle_child["name"] = bundle_product["name"]
+                    current_bundle_child["price_range"] = bundle_product["price_range"]
+                    current_bundle_child["created_at"] = bundle_product.get("created_at")
+                    current_bundle_child["updated_at"] = bundle_product.get("updated_at")
+
+                    if bundle_product["sku"] not in self.skus_variants_bundles_this_store_dict:
+                        self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
+                        yield current_bundle_child
+
+    def parse_response(self, response: requests.Response) -> Iterable[dict]:
+        if self.current_visibility == 3:
+            for product_batch in super().parse_response(response):
+                for product_batch_item in product_batch:
+                    if len(product_batch[product_batch_item]["items"]) == 0:
+                        product = {}
+                    else: 
+                        product = product_batch[product_batch_item]["items"][0]
+                    
+                    yield from self.deal_with_bundle_and_variants(product)
+            return
+        elif self.current_visibility in [2, 4]:
+            for product in super().parse_response(response):
+                yield from self.deal_with_bundle_and_variants(product)
+            return
+        else:
+            yield from super().parse_response(response)
+
+    schema = th.PropertiesList(
+        th.Property("id", th.NumberType),
+        th.Property("store_id", th.StringType),
+        th.Property("store_code", th.StringType),
+        th.Property("currency_code", th.StringType),
+        th.Property("uid", th.StringType),
+        th.Property("sku", th.StringType),
+        th.Property("name", th.StringType),
+        th.Property("url_key", th.StringType),
+        th.Property("type_id", th.StringType),
+        th.Property("is_variant", th.BooleanType),
+        th.Property("is_part_of_bundle", th.BooleanType),
+        th.Property("variant_parent_sku", th.StringType),
+        th.Property("bundle_parent_sku", th.StringType),
+        th.Property("invisible_in_catalog_and_search", th.BooleanType),
+        th.Property("price_null_deactivated_status", th.BooleanType),
+        th.Property("price_no_special", th.NumberType),
+        th.Property("hg_fetched_at", th.DateTimeType),
+        th.Property("attributes", th.ArrayType(th.CustomType({"type": ["object", "string"]})),),
+        th.Property(
+            "price_range", th.CustomType({"type": ["object", "string"]}),
+        ),
+        th.Property(
+            "price_tiers", th.ArrayType(th.CustomType({"type": ["object", "string"]})),
+        ),
+        # yes, there are price_tiers (graphql) and tier_prices (rest)
+        th.Property(
+            "tier_prices",
+            th.ArrayType(th.CustomType({"type": ["string", "object"]})),
+        ),
+        th.Property(
+            "variants", th.ArrayType(th.CustomType({"type": ["object", "string"]})),
+        ),
+        th.Property(
+            "bundle_items", th.ArrayType(th.CustomType({"type": ["object", "string"]})),
+        ),
+    ).to_dict()
+
+    def row_from_context(self, context: dict) -> dict:
+        return {
+            "sku": context["product_sku"],
+            "store_id": context["store_id"],
+            "store_code": context["store_code"],
+            "id": context["product_id"],
+            "visibility": context["visibility"],
+            "status": context["product_status"],
+            "currency_code": context["base_currency_code"],
+            "name": context["product_name"]
+        }
+
+    def validate_response(self, response: requests.Response) -> None:
+        try:
+            super().validate_response(response)
+        except Exception as e:
+            if response.status_code == 500:
+                raise type(e)(f"{e}. You might not have full (products) GraphQL permissions enabled in your store.") from e
+            else:
+                raise e
+
+    def get_records(self, context: Optional[dict]) -> Iterable[dict]:
+
+        # At the end of each store, we go through the skus with visibility 1 and yield if not gotten yet.
+        if self.clearing_visibility_1_skus and context.get("visibility", 0) == 1:
+            row = self.post_process(self.row_from_context(context), context)
+            if row["sku"] not in self.processed_skus_this_store:
+                yield row
+                self.processed_skus_this_store.append(row["sku"])
+            return
+
+        # If haven't fetched this store yet, fetch the products with visibility 2 or 4, then continue.
+        if context["store_id"] not in self.fetched_store_ids_visibility_2_4:
+            self.rest_method = "POST"
+            self.fetched_store_ids_visibility_2_4.append(context["store_id"])
+            big_context = {}
+            big_context["store_id"] = context["store_id"]
+            big_context["store_code"] = context["store_code"]
+            big_context["base_currency_code"] = context["base_currency_code"]
+            self.current_visibility = 2
+            big_context["action"] = "Querying products w/ visibility 2 and 4"
+            yield from super().get_records(big_context)
+        
+        # Set the current visibility of the product. A lot of logic depends on this.
+        self.current_visibility = context["visibility"]
+        
+        # We already got these products.
+        if context["visibility"] == 2 or context["visibility"] == 4:
+            return
+
+        # Build batches for products with visibility 3, as they need individual queries.
+        elif context["visibility"] == 3:
+            self.rest_method = "POST"
+            if not context or not context.get("product_sku"):
+                return
+
+            # If the product is disabled (status 2), yield it immediately.
+            if context["product_status"] == 2:
+                row = {}
+                row = self.row_from_context(context)
+                row["price_null_deactivated_status"] = True
+                row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                if row["sku"] not in self.processed_skus_this_store:
+                    yield row
+                    self.processed_skus_this_store.append(row["sku"])
+                return
+
+            # If the batch is not empty, check if the current batch is from a different store. If yes, then query that batch and start a new one with current context.
+            if len(list(self.current_batch_context_dict.keys())) > 0:
+                previous_key = list(self.current_batch_context_dict.keys())[-1]
+                previous_store_id = self.current_batch_context_dict.get(previous_key).get("store_id")
+                if (context["store_id"] != previous_store_id):
+                    yield from super().get_records(context)
+                    for sku in self.current_batch_context_dict.keys():
+                        if sku not in self.processed_skus_this_store:
+                            self.processed_skus_this_store.append(sku)
+                    self.current_batch_context_dict = {}
+                    self.current_batch_context_dict[context["product_sku"]] = context
+                    return
+
+            # If we haven't process this sku yet (possible because could be variant), add to batch.
+            if context["product_sku"] not in self.processed_skus_this_store:
+                self.current_batch_context_dict[context["product_sku"]] = context
+
+            # If the batch is not full, return.
+            if len(self.current_batch_context_dict.keys()) < self.BATCH_SIZE:
+                return
+
+            # Query the batch and wipe the cache.
+            yield from super().get_records(context)
+
+            for sku in self.current_batch_context_dict.keys():
+                if sku not in self.processed_skus_this_store:
+                    self.processed_skus_this_store.append(sku)
+
+            self.current_batch_context_dict = {}
+        elif context["visibility"] == 1:
+            self.skus_with_visibility_1_this_store_dict[context["product_sku"]] = context
+        else:
+            self.logger.warning(f"Invalid visibility for prices stream: {context['visibility']}")
+            return
 
 class ProductAttributesStream(MagentoStream):
     name = "product_attributes"
