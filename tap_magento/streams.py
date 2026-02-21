@@ -331,17 +331,17 @@ class ProductsStream(MagentoStream):
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
         return {
-            "product_sku": record["sku"],
-            "product_status": record["status"],
+            "product_sku": record.get("sku"),
+            "product_status": record.get("status"),
             "store_id": context["store_id"],
             "store_code": context["store_code"],
-            "product_id": record["id"],
+            "product_id": record.get("id"),
             "base_currency_code": context["base_currency_code"],
-            "visibility": record["visibility"],
-            "product_id": record["id"],
-            "product_price": record["price"],
-            "product_name": record["name"],
-            "tier_prices": record.get("tier_prices", [])
+            "visibility": record.get("visibility"),
+            "product_id": record.get("id"),
+            "product_price": record.get("price"),
+            "product_name": record.get("name"),
+            "tier_prices": record.get("tier_prices")
         }
 
     def sync(self, context=None):
