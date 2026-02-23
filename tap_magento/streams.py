@@ -28,6 +28,7 @@ class StoresStream(MagentoStream):
     def parse_response(self, response):
         if self.config.get("fetch_all_stores", False):
             yield from super().parse_response(response)
+            return
 
         resps = list(super().parse_response(response))
         store_ids_all = [] #initialize all store ids
