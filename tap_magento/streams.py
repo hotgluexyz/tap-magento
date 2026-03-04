@@ -1,11 +1,10 @@
 """Stream type classes for tap-magento."""
-from math import e
 import requests
 import pendulum
 from datetime import datetime, timezone
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Any, Optional, Iterable
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -276,7 +275,7 @@ class OrdersStream(MagentoStream):
 
                 self.ids.append(item["entity_id"])
                 yield item
-        except Exception as e:
+        except Exception:
             #Unable to parse the response. Log and then skip this page.
             self.logger.warn(f'Could not parse following response. {response.text}. {response.request.url} Skipping...')
             return []
@@ -339,7 +338,6 @@ class ProductsStream(MagentoStream):
             "product_id": record.get("id"),
             "base_currency_code": context["base_currency_code"],
             "visibility": record.get("visibility"),
-            "product_id": record.get("id"),
             "product_price": record.get("price"),
             "product_name": record.get("name"),
             "tier_prices": record.get("tier_prices")
@@ -420,7 +418,6 @@ class ProductsRenderInfoStream(MagentoStream):
         self, response: requests.Response, previous_token: Optional[Any]
     ) -> Optional[Any]:
         """Return a token for identifying next page or None if no more pages."""
-        next_page_token = None
         response_json = response.json()
         if len(response_json.get("items", [])) == self.page_size:
             return (previous_token or 1) + 1
