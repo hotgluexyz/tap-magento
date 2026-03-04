@@ -1,11 +1,9 @@
 """REST client handling, including MagentoStream base class."""
 
 import backoff
-import logging
 import requests
 
-from pathlib import Path
-from typing import Any, Dict, Optional, Callable, Iterable, cast
+from typing import Any, Optional, Callable, Iterable, cast
 
 from datetime import datetime, timedelta
 from simplejson.scanner import JSONDecodeError
@@ -87,7 +85,6 @@ class MagentoStream(RESTStream):
     records_jsonpath = "$.items[*]"
 
     def get_token(self):
-        now = round(datetime.utcnow().timestamp())
         if not self.access_token:
             s = self.requests_session
             payload = {
@@ -330,10 +327,10 @@ class MagentoStream(RESTStream):
             # More info on: https://github.com/magento/magento2/issues/15461
             if self.config.get("fetch_all_stores") and context.get("store_id"):
                 params[
-                f"searchCriteria[filterGroups][2][filters][0][field]"
+                "searchCriteria[filterGroups][2][filters][0][field]"
             ] = "store_id"
                 params[
-                    f"searchCriteria[filterGroups][2][filters][0][value]"
+                    "searchCriteria[filterGroups][2][filters][0][value]"
                 ] = int(context.get("store_id"))
 
             elif self.config.get("store_id"):
@@ -490,7 +487,6 @@ class MagentoStream(RESTStream):
             return []
         try:
             response_content = response.json()
-            max_date = None
             if self.replication_key and self.current_page == self.max_pagination:
                 # get max date
                 dates = [parse(x[self.replication_key]) for x in super().parse_response(response)]
@@ -502,11 +498,9 @@ class MagentoStream(RESTStream):
                         self.max_pagination = self.max_pagination + 1
                     else:
                         # If this entire page is the same date, the max_date should be set to the current max_date - 1 second
-                        max_date = None
                         self.max_date = sorted_dates[0] - timedelta(seconds=1)
                 else:
                     # filtering params use "gt" therefore use second greatest max_date to avoid losing data
-                    max_date = sorted_dates[0]
                     prev_date = sorted_dates[1]
                     self.max_date = prev_date
 
