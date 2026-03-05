@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Iterable
 
-from singer_sdk import typing as th  # JSON Schema typing helpers
+from hotglue_singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_magento.client import MagentoStream
 
