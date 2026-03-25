@@ -2,7 +2,7 @@
 
 import datetime
 
-from hotglue_singer_sdk.testing import get_standard_tap_tests
+from singer_sdk.testing import get_standard_tap_tests
 
 from tap_magento.tap import TapMagento
 

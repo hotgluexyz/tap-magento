@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "tap-magento"
 version = "0.0.12"
-description = "`tap-magento` is a Singer tap for Magento, built with the HotGlue SDK for Singer Taps."
+description = "`tap-magento` is a Singer tap for Magento, built with the Meltano SDK for Singer Taps."
 authors = ["hotglue"]
 keywords = [
     "ELT",
@@ -10,9 +10,9 @@ keywords = [
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = "<3.11,>=3.6.2"
 requests = "^2.25.1"
-hotglue-singer-sdk = "^1.0.11"
+singer-sdk = "^0.4.0"
 requests-oauthlib = "^1.3.1"
 beautifulsoup4 = "^4.13.4"
 
@@ -25,7 +25,6 @@ pydocstyle = "^6.1.1"
 mypy = "^0.910"
 types-requests = "^2.26.1"
 isort = "^5.10.1"
-ruff = "^0.1.0"
 
 [tool.isort]
 profile = "black"
