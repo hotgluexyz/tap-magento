@@ -634,7 +634,7 @@ class PricesStream(MagentoStream):
         elif self.current_visibility == 3:
 
             # Make sure we are using the right store id for variants, bundles, and main products.
-            if row["sku"] in self.current_batch_context_dict:
+            if "sku" in row and row["sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["sku"]]
             elif "variant_parent_sku" in row and row["variant_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["variant_parent_sku"]]
