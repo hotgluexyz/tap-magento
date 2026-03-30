@@ -617,6 +617,25 @@ class PricesStream(MagentoStream):
         return {}
 
     def post_process(self, row, context):
+
+        if isinstance(row, dict) and row != {}:
+            pass
+        elif isinstance(row, dict) and row == {}:
+            self.logger.warning(f"WARNING: Row is empty: {row}; and context: {context}")
+            return row
+        else:
+            self.logger.warning(f"WARNING: Row is not a dict: {row}; and context: {context}")
+            return row
+        
+        if isinstance(context, dict) and context != {}:
+            pass
+        elif isinstance(context, dict) and context == {}:
+            self.logger.warning(f"WARNING: Context is empty: {context}; and row: {row}")
+            return row
+        else:
+            self.logger.warning(f"WARNING: Context is not a dict: {context}; and row: {row}")
+            return row
+
         row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         
         if self.current_visibility in [2, 4]:
@@ -738,11 +757,35 @@ class PricesStream(MagentoStream):
                     else: 
                         product = product_batch[product_batch_item]["items"][0]
                     
-                    yield from self.deal_with_bundle_and_variants(product)
+                    if isinstance(product, dict) and product != {}:
+                        if "sku" not in product or product["sku"] == "":
+                            self.logger.warning(f"WARNING: Sku is empty for product {product} in {response}")
+                        elif any(
+                            not (variant.get("product") or {}).get("sku")
+                            for variant in product.get("variants", [])
+                        ):
+                            self.logger.warning(f"WARNING: Variant sku not present for product {product} in {response}")
+                        yield from self.deal_with_bundle_and_variants(product)
+                    elif isinstance(product, dict) and product == {}:
+                        self.logger.warning(f"WARNING: Items is empty for product {product_batch_item} in {response}")
+                    else:
+                        self.logger.warning(f"WARNING: Product is not a dict for product {product_batch_item} in {response}")
             return
         elif self.current_visibility in [2, 4]:
             for product in super().parse_response(response):
-                yield from self.deal_with_bundle_and_variants(product)
+                if isinstance(product, dict) and product != {}:
+                    if "sku" not in product or product["sku"] == "":
+                        self.logger.warning(f"WARNING: Sku is empty for product {product} in {response}")
+                    elif any(
+                        not (variant.get("product") or {}).get("sku")
+                        for variant in product.get("variants", [])
+                    ):
+                        self.logger.warning(f"WARNING: Variant sku not present for product {product} in {response}")
+                    yield from self.deal_with_bundle_and_variants(product)
+                elif isinstance(product, dict) and product == {}:
+                    self.logger.warning(f"WARNING: Items is empty for product {product} in {response}")
+                else:
+                    self.logger.warning(f"WARNING: Product is not a dict for product {product} in {response}")
             return
         else:
             yield from super().parse_response(response)
