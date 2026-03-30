@@ -628,17 +628,17 @@ class PricesStream(MagentoStream):
             row["store_id"] = context["store_id"]
             row["store_code"] = context["store_code"]
             row["currency_code"] = context["base_currency_code"]
-            if "sku" in row and row["sku"] not in self.processed_skus_this_store:
+            if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                 self.processed_skus_this_store.append(row["sku"])
             return row
         elif self.current_visibility == 3:
 
             # Make sure we are using the right store id for variants, bundles, and main products.
-            if "sku" in row and row["sku"] in self.current_batch_context_dict:
+            if "sku" in row and row["sku"] and row["sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["sku"]]
-            elif "variant_parent_sku" in row and row["variant_parent_sku"] in self.current_batch_context_dict:
+            elif "variant_parent_sku" in row and row["variant_parent_sku"] and row["variant_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["variant_parent_sku"]]
-            elif "bundle_parent_sku" in row and row["bundle_parent_sku"] in self.current_batch_context_dict:
+            elif "bundle_parent_sku" in row and row["bundle_parent_sku"] and row["bundle_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["bundle_parent_sku"]]
             else:
                 current_context = list(self.current_batch_context_dict.values())[-1]
@@ -671,7 +671,7 @@ class PricesStream(MagentoStream):
             product["name"] = product["title"]
         yield product
 
-        parent_sku = product.get("sku", "")
+        parent_sku = product.get("sku")
 
         # Go through each variant and yield it.
         variants_list = product.get("variants", [])
@@ -695,7 +695,7 @@ class PricesStream(MagentoStream):
             current_variant["created_at"] = variant_product.get("created_at")
             current_variant["updated_at"] = variant_product.get("updated_at")
 
-            if "sku" in variant_product and variant_product["sku"] not in self.skus_variants_bundles_this_store_dict:
+            if "sku" in variant_product and variant_product["sku"] and variant_product["sku"] not in self.skus_variants_bundles_this_store_dict:
                 self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
                 yield current_variant
 
@@ -725,7 +725,7 @@ class PricesStream(MagentoStream):
                     current_bundle_child["created_at"] = bundle_product.get("created_at")
                     current_bundle_child["updated_at"] = bundle_product.get("updated_at")
 
-                    if "sku" in bundle_product and bundle_product["sku"] not in self.skus_variants_bundles_this_store_dict:
+                    if "sku" in bundle_product and bundle_product["sku"] and bundle_product["sku"] not in self.skus_variants_bundles_this_store_dict:
                         self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
                         yield current_bundle_child
 
@@ -811,7 +811,7 @@ class PricesStream(MagentoStream):
         # At the end of each store, we go through the skus with visibility 1 and yield if not gotten yet.
         if self.clearing_visibility_1_skus and context.get("visibility", 0) == 1:
             row = self.post_process(self.row_from_context(context), context)
-            if "sku" in row and row["sku"] not in self.processed_skus_this_store:
+            if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                 yield row
                 self.processed_skus_this_store.append(row["sku"])
             return
@@ -847,7 +847,7 @@ class PricesStream(MagentoStream):
                 row = self.row_from_context(context)
                 row["price_null_deactivated_status"] = True
                 row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                if "sku" in row and row["sku"] not in self.processed_skus_this_store:
+                if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                     yield row
                     self.processed_skus_this_store.append(row["sku"])
                 return
