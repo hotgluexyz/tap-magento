@@ -628,17 +628,17 @@ class PricesStream(MagentoStream):
             row["store_id"] = context["store_id"]
             row["store_code"] = context["store_code"]
             row["currency_code"] = context["base_currency_code"]
-            if "sku" in row and row["sku"] not in self.processed_skus_this_store:
+            if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                 self.processed_skus_this_store.append(row["sku"])
             return row
         elif self.current_visibility == 3:
 
             # Make sure we are using the right store id for variants, bundles, and main products.
-            if "sku" in row and row["sku"] in self.current_batch_context_dict:
+            if "sku" in row and row["sku"] and row["sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["sku"]]
-            elif "variant_parent_sku" in row and row["variant_parent_sku"] in self.current_batch_context_dict:
+            elif "variant_parent_sku" in row and row["variant_parent_sku"] and row["variant_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["variant_parent_sku"]]
-            elif "bundle_parent_sku" in row and row["bundle_parent_sku"] in self.current_batch_context_dict:
+            elif "bundle_parent_sku" in row and row["bundle_parent_sku"] and row["bundle_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["bundle_parent_sku"]]
             else:
                 current_context = list(self.current_batch_context_dict.values())[-1]
@@ -671,7 +671,7 @@ class PricesStream(MagentoStream):
             product["name"] = product["title"]
         yield product
 
-        parent_sku = product["sku"]
+        parent_sku = product.get("sku")
 
         # Go through each variant and yield it.
         variants_list = product.get("variants", [])
@@ -684,17 +684,18 @@ class PricesStream(MagentoStream):
         for variant in variants_list:
             current_variant["is_variant"] = True
             current_variant["variant_parent_sku"] = parent_sku
-            current_variant["id"] = variant["product"]["id"]
-            current_variant["uid"] = variant["product"].get("uid")
-            current_variant["url_key"] = variant["product"].get("url_key")
-            current_variant["sku"] = variant["product"]["sku"]
-            current_variant["name"] = variant["product"]["name"]
-            current_variant["price_range"] = variant["product"]["price_range"]
+            variant_product = variant.get("product", {})
+            current_variant["id"] = variant_product.get("id")
+            current_variant["uid"] = variant_product.get("uid")
+            current_variant["url_key"] = variant_product.get("url_key")
+            current_variant["sku"] = variant_product.get("sku")
+            current_variant["name"] = variant_product.get("name")
+            current_variant["price_range"] = variant_product.get("price_range")
             current_variant["attributes"] = variant.get("attributes", [])
-            current_variant["created_at"] = variant["product"].get("created_at")
-            current_variant["updated_at"] = variant["product"].get("updated_at")
+            current_variant["created_at"] = variant_product.get("created_at")
+            current_variant["updated_at"] = variant_product.get("updated_at")
 
-            if variant["product"]["sku"] not in self.skus_variants_bundles_this_store_dict:
+            if "sku" in variant_product and variant_product["sku"] and variant_product["sku"] not in self.skus_variants_bundles_this_store_dict:
                 self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
                 yield current_variant
 
@@ -715,16 +716,16 @@ class PricesStream(MagentoStream):
                 if bundle_product:
                     current_bundle_child["is_variant"] = True
                     current_bundle_child["bundle_parent_sku"] = parent_sku
-                    current_bundle_child["id"] = bundle_product["id"]
+                    current_bundle_child["id"] = bundle_product.get("id")
                     current_bundle_child["uid"] = bundle_product.get("uid")
                     current_bundle_child["url_key"] = bundle_product.get("url_key")
-                    current_bundle_child["sku"] = bundle_product["sku"]
-                    current_bundle_child["name"] = bundle_product["name"]
-                    current_bundle_child["price_range"] = bundle_product["price_range"]
+                    current_bundle_child["sku"] = bundle_product.get("sku")
+                    current_bundle_child["name"] = bundle_product.get("name")
+                    current_bundle_child["price_range"] = bundle_product.get("price_range")
                     current_bundle_child["created_at"] = bundle_product.get("created_at")
                     current_bundle_child["updated_at"] = bundle_product.get("updated_at")
 
-                    if bundle_product["sku"] not in self.skus_variants_bundles_this_store_dict:
+                    if "sku" in bundle_product and bundle_product["sku"] and bundle_product["sku"] not in self.skus_variants_bundles_this_store_dict:
                         self.skus_variants_bundles_this_store_dict[variant["product"]["sku"]] = ""
                         yield current_bundle_child
 
@@ -786,14 +787,14 @@ class PricesStream(MagentoStream):
 
     def row_from_context(self, context: dict) -> dict:
         return {
-            "sku": context["product_sku"],
-            "store_id": context["store_id"],
-            "store_code": context["store_code"],
-            "id": context["product_id"],
-            "visibility": context["visibility"],
-            "status": context["product_status"],
-            "currency_code": context["base_currency_code"],
-            "name": context["product_name"]
+            "sku": context.get("product_sku"),
+            "store_id": context.get("store_id"),
+            "store_code": context.get("store_code"),
+            "id": context.get("product_id"),
+            "visibility": context.get("visibility"),
+            "status": context.get("product_status"),
+            "currency_code": context.get("base_currency_code"),
+            "name": context.get("product_name")
         }
 
     def validate_response(self, response: requests.Response) -> None:
@@ -810,7 +811,7 @@ class PricesStream(MagentoStream):
         # At the end of each store, we go through the skus with visibility 1 and yield if not gotten yet.
         if self.clearing_visibility_1_skus and context.get("visibility", 0) == 1:
             row = self.post_process(self.row_from_context(context), context)
-            if row["sku"] not in self.processed_skus_this_store:
+            if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                 yield row
                 self.processed_skus_this_store.append(row["sku"])
             return
@@ -846,7 +847,7 @@ class PricesStream(MagentoStream):
                 row = self.row_from_context(context)
                 row["price_null_deactivated_status"] = True
                 row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                if row["sku"] not in self.processed_skus_this_store:
+                if "sku" in row and row["sku"] and row["sku"] not in self.processed_skus_this_store:
                     yield row
                     self.processed_skus_this_store.append(row["sku"])
                 return
