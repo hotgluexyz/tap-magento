@@ -622,19 +622,19 @@ class PricesStream(MagentoStream):
             pass
         elif isinstance(row, dict) and row == {}:
             self.logger.warning(f"WARNING: Row is empty: {row}; and context: {context}")
-            return row
+            return None
         else:
             self.logger.warning(f"WARNING: Row is not a dict: {row}; and context: {context}")
-            return row
+            return None
         
         if isinstance(context, dict) and context != {}:
             pass
         elif isinstance(context, dict) and context == {}:
             self.logger.warning(f"WARNING: Context is empty: {context}; and row: {row}")
-            return row
+            return None
         else:
             self.logger.warning(f"WARNING: Context is not a dict: {context}; and row: {row}")
-            return row
+            return None
 
         row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
         
@@ -758,7 +758,7 @@ class PricesStream(MagentoStream):
                         product = product_batch[product_batch_item]["items"][0]
                     
                     if isinstance(product, dict) and product != {}:
-                        if "sku" not in product or product["sku"] == "":
+                        if not product.get("sku"):
                             self.logger.warning(f"WARNING: Sku is empty for product {product} in {response}")
                         elif any(
                             not (variant.get("product") or {}).get("sku")
@@ -774,7 +774,7 @@ class PricesStream(MagentoStream):
         elif self.current_visibility in [2, 4]:
             for product in super().parse_response(response):
                 if isinstance(product, dict) and product != {}:
-                    if "sku" not in product or product["sku"] == "":
+                    if not product.get("sku"):
                         self.logger.warning(f"WARNING: Sku is empty for product {product} in {response}")
                     elif any(
                         not (variant.get("product") or {}).get("sku")
