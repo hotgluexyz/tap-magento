@@ -342,6 +342,19 @@ class ProductsStream(MagentoStream):
             "product_name": record.get("name"),
             "tier_prices": record.get("tier_prices")
         }
+    
+    def _sync_children(self, child_context: dict) -> None:
+        """Respect explicit child partitioning keys (e.g. PricesStream.store_id)."""
+        for child_stream in self.child_streams:
+            if child_stream.selected or child_stream.has_selected_descendents:
+                # Preserve child-defined partition strategy.
+                if child_stream.state_partitioning_keys is None:
+                    # Fallback behavior for streams that did not define partition keys.
+                    child_stream.state_partitioning_keys = list(
+                        set(child_stream.state_partitioning_keys or [])
+                        | set(child_context.keys())
+                    )
+                child_stream.sync(context=child_context)
 
     def sync(self, context=None):
         super().sync(context)
