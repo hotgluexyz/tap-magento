@@ -20,6 +20,9 @@ from pendulum import parse
 import copy
 from bs4 import BeautifulSoup
 
+import singer
+from singer import StateMessage
+
 def extract_text_from_html(content: str) -> str:
     soup = BeautifulSoup(content, 'html.parser')
     text = '- '.join(soup.stripped_strings)
@@ -572,3 +575,14 @@ class MagentoStream(RESTStream):
                 )
             # Cycle until get_next_page_token() no longer returns a value
             finished = not next_page_token
+
+    def _write_state_message(self) -> None:
+        """Write out a STATE message with the latest state."""
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name in tap_state.get("bookmarks").keys():
+                if tap_state["bookmarks"][stream_name].get("partitions"):
+                    tap_state["bookmarks"][stream_name]["partitions"] = []
+
+        singer.write_message(StateMessage(value=tap_state))
