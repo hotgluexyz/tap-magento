@@ -631,13 +631,15 @@ class PricesStream(MagentoStream):
             row["store_id"] = context["store_id"]
             row["store_code"] = context["store_code"]
             row["currency_code"] = context["base_currency_code"]
-            if row["sku"] not in self.processed_skus_this_store:
+            if "sku" in row and row["sku"] not in self.processed_skus_this_store:
+            #if row["sku"] not in self.processed_skus_this_store:
                 self.processed_skus_this_store.append(row["sku"])
             return row
         elif self.current_visibility == 3:
 
             # Make sure we are using the right store id for variants, bundles, and main products.
-            if row["sku"] in self.current_batch_context_dict:
+            #if row["sku"] in self.current_batch_context_dict:
+            if "sku" in row and row["sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["sku"]]
             elif "variant_parent_sku" in row and row["variant_parent_sku"] in self.current_batch_context_dict:
                 current_context = self.current_batch_context_dict[row["variant_parent_sku"]]
@@ -884,6 +886,8 @@ class PricesStream(MagentoStream):
 
             self.current_batch_context_dict = {}
         elif context["visibility"] == 1:
+            if not context.get("product_sku"):
+                return
             self.skus_with_visibility_1_this_store_dict[context["product_sku"]] = context
         else:
             self.logger.warning(f"Invalid visibility for prices stream: {context['visibility']}")
