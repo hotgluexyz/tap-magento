@@ -20,6 +20,9 @@ from pendulum import parse
 import copy
 from bs4 import BeautifulSoup
 
+import singer
+from singer import StateMessage
+
 def extract_text_from_html(content: str) -> str:
     soup = BeautifulSoup(content, 'html.parser')
     text = '- '.join(soup.stripped_strings)
@@ -396,6 +399,24 @@ class MagentoStream(RESTStream):
 
         return datetime.fromtimestamp(lower_bound).strftime("%Y-%m-%d %H:%M:%S")
 
+    def _handle_401_response(self, response: requests.Response) -> None:
+        try:
+            response_json = response.json()
+        except Exception:
+            response_json = {}
+        message = response_json.get("message", "")
+        if "nonce" in message:
+            raise RetriableAPIError(
+                f"Retryable OAuth nonce reuse detected for path: {self.path}. "
+                f"Response: {response.text}"
+            )
+        # preserve existing behavior for other 401s
+        msg = (
+            f"{response.status_code} Client Error: "
+            f"{response.reason} for path: {self.path}"
+            f" with text:{response.text} "
+        )
+        raise FatalAPIError(msg)
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
@@ -451,6 +472,8 @@ class MagentoStream(RESTStream):
         elif response.status_code == 403 or "cf-error-details" in response.text:
             resp_text = extract_text_from_html(response.text)
             raise FatalAPIError(resp_text)
+        elif response.status_code == 401:
+            self._handle_401_response(response)
         elif 400 <= response.status_code < 500:
             msg = (
                 f"{response.status_code} Client Error: "
@@ -572,3 +595,14 @@ class MagentoStream(RESTStream):
                 )
             # Cycle until get_next_page_token() no longer returns a value
             finished = not next_page_token
+
+    def _write_state_message(self) -> None:
+        """Write out a STATE message with the latest state."""
+        tap_state = self.tap_state
+
+        if tap_state and tap_state.get("bookmarks"):
+            for stream_name in tap_state.get("bookmarks").keys():
+                if tap_state["bookmarks"][stream_name].get("partitions"):
+                    tap_state["bookmarks"][stream_name]["partitions"] = []
+
+        singer.write_message(StateMessage(value=tap_state))
