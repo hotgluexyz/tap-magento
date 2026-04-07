@@ -2,7 +2,6 @@
 
 import json
 import logging
-from reprlib import repr as short_repr
 from typing import Any, List
 
 import requests
@@ -104,12 +103,6 @@ SENSITIVE_KEYS = {
 }
 SNAPSHOT_TEXT_LIMIT = 8000
 
-def _safe_value(v):
-    try:
-        return short_repr(v)  # truncated repr
-    except Exception:
-        return f"<unreprable:{type(v).__name__}>"
-
 
 def _is_sensitive_key(key: str) -> bool:
     lowered = key.lower()
@@ -126,17 +119,17 @@ def _redact_mapping(mapping: Any) -> dict:
         if _is_sensitive_key(key_str):
             redacted[key_str] = "<REDACTED>"
         else:
-            redacted[key_str] = _safe_value(value)
+            redacted[key_str] = value
     return redacted
 
 
 def _response_snapshot(response: requests.Response) -> dict:
     request = getattr(response, "request", None)
-    body_preview = _safe_value((response.text or "")[:SNAPSHOT_TEXT_LIMIT])
-    request_body_preview = _safe_value(str(getattr(request, "body", ""))[:SNAPSHOT_TEXT_LIMIT])
+    body_preview = (response.text or "")[:SNAPSHOT_TEXT_LIMIT]
+    request_body_preview = str(getattr(request, "body", ""))[:SNAPSHOT_TEXT_LIMIT]
 
     try:
-        json_preview = _safe_value(response.json())
+        json_preview = response.json()
     except Exception as err:
         json_preview = f"<json_parse_error:{type(err).__name__}>"
 
