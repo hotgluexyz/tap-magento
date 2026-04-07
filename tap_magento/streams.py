@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Optional, Iterable
 
 from hotglue_singer_sdk import typing as th  # JSON Schema typing helpers
+from hotglue_singer_sdk.exceptions import RetriableAPIError
+
 
 from tap_magento.client import MagentoStream
 
@@ -829,6 +831,19 @@ class PricesStream(MagentoStream):
                 raise type(e)(f"{e}. You might not have full (products) GraphQL permissions enabled in your store.") from e
             else:
                 raise e
+
+        if self.current_visibility in [2, 4] and response.status_code == 200:
+            try:
+                payload = response.json()
+            except Exception as e:
+                raise RetriableAPIError(f"Invalid JSON for product_prices GraphQL: {e}") from e
+            products = ((payload or {}).get("data") or {}).get("products")
+            page_info = (products or {}).get("page_info")
+            if not page_info or page_info.get("current_page") is None or page_info.get("total_pages") is None:
+                raise RetriableAPIError(
+                    f"Transient GraphQL payload missing page_info for product_prices. "
+                    f"store={response.request.headers.get('store')}, url={response.request.url}"
+                )
 
     def get_records(self, context: Optional[dict]) -> Iterable[dict]:
 
