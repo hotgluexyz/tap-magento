@@ -1,6 +1,11 @@
 """Magento tap class."""
 
-from typing import List
+import json
+import logging
+from reprlib import repr as short_repr
+from typing import Any, List
+
+import requests
 
 from hotglue_singer_sdk import Tap, Stream
 from hotglue_singer_sdk import typing as th  # JSON schema typing helpers
@@ -85,5 +90,111 @@ class TapMagento(Tap):
         return [stream_class(tap=self) for stream_class in STREAM_TYPES]
 
 
+SENSITIVE_KEYS = {
+    "password",
+    "access_token",
+    "token",
+    "secret",
+    "authorization",
+    "cookie",
+    "consumer_key",
+    "consumer_secret",
+    "oauth_token",
+    "oauth_token_secret",
+}
+SNAPSHOT_TEXT_LIMIT = 8000
+
+def _safe_value(v):
+    try:
+        return short_repr(v)  # truncated repr
+    except Exception:
+        return f"<unreprable:{type(v).__name__}>"
+
+
+def _is_sensitive_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(s in lowered for s in SENSITIVE_KEYS)
+
+
+def _redact_mapping(mapping: Any) -> dict:
+    redacted: dict = {}
+    if not mapping:
+        return redacted
+
+    for key, value in dict(mapping).items():
+        key_str = str(key)
+        if _is_sensitive_key(key_str):
+            redacted[key_str] = "<REDACTED>"
+        else:
+            redacted[key_str] = _safe_value(value)
+    return redacted
+
+
+def _response_snapshot(response: requests.Response) -> dict:
+    request = getattr(response, "request", None)
+    body_preview = _safe_value((response.text or "")[:SNAPSHOT_TEXT_LIMIT])
+    request_body_preview = _safe_value(str(getattr(request, "body", ""))[:SNAPSHOT_TEXT_LIMIT])
+
+    try:
+        json_preview = _safe_value(response.json())
+    except Exception as err:
+        json_preview = f"<json_parse_error:{type(err).__name__}>"
+
+    return {
+        "status_code": response.status_code,
+        "reason": response.reason,
+        "url": response.url,
+        "request_method": getattr(request, "method", None),
+        "request_url": getattr(request, "url", None),
+        "request_headers": _redact_mapping(getattr(request, "headers", {})),
+        "request_body_preview": request_body_preview,
+        "response_headers": _redact_mapping(response.headers),
+        "response_json_preview": json_preview,
+        "response_body_preview": body_preview,
+    }
+
+
+def _iter_exception_chain(exc: BaseException):
+    current = exc
+    seen = set()
+    while current and id(current) not in seen:
+        seen.add(id(current))
+        yield current
+        current = current.__cause__ or current.__context__
+
+
+def _extract_response_snapshots(exc: BaseException) -> list[dict]:
+    responses_by_id: dict[int, requests.Response] = {}
+
+    for chained_exc in _iter_exception_chain(exc):
+        response = getattr(chained_exc, "response", None)
+        if isinstance(response, requests.Response):
+            responses_by_id[id(response)] = response
+
+        tb = chained_exc.__traceback__
+        while tb:
+            frame = tb.tb_frame
+            for value in frame.f_locals.values():
+                if isinstance(value, requests.Response):
+                    responses_by_id[id(value)] = value
+            tb = tb.tb_next
+
+    return [_response_snapshot(response) for response in responses_by_id.values()]
+
+
+def _log_response_details(exc: BaseException) -> None:
+    snapshots = _extract_response_snapshots(exc)
+    if snapshots:
+        logging.error(
+            "Captured HTTP response snapshot(s): %s",
+            json.dumps(snapshots, default=str),
+        )
+    else:
+        logging.error("No requests.Response object found in exception chain/traceback.")
+
 if __name__ == "__main__":
-    TapMagento.cli()
+    try:
+        TapMagento.cli()
+    except Exception as exc:
+        _log_response_details(exc)
+        raise
