@@ -125,13 +125,23 @@ def _redact_mapping(mapping: Any) -> dict:
 
 def _response_snapshot(response: requests.Response) -> dict:
     request = getattr(response, "request", None)
-    body_preview = (response.text or "")[:SNAPSHOT_TEXT_LIMIT]
-    request_body_preview = str(getattr(request, "body", ""))[:SNAPSHOT_TEXT_LIMIT]
 
-    try:
-        json_preview = response.json()
-    except Exception as err:
-        json_preview = f"<json_parse_error:{type(err).__name__}>"
+    request_url = str(getattr(request, "url", "") or "")
+    response_url = str(getattr(response, "url", "") or "")
+    is_token_endpoint = "/integration/admin/token" in request_url or "/integration/admin/token" in response_url
+    # Keep existing behavior for non-token requests.
+    if is_token_endpoint:
+        request_body_preview = "<REDACTED>"
+        json_preview = "<REDACTED>"
+        body_preview = "<REDACTED>"
+    else:
+        body_preview = (response.text or "")[:SNAPSHOT_TEXT_LIMIT]
+        request_body_preview = str(getattr(request, "body", ""))[:SNAPSHOT_TEXT_LIMIT]
+
+        try:
+            json_preview = response.json()
+        except Exception as err:
+            json_preview = f"<json_parse_error:{type(err).__name__}>"
 
     return {
         "status_code": response.status_code,
@@ -189,5 +199,8 @@ if __name__ == "__main__":
     try:
         TapMagento.cli()
     except Exception as exc:
-        _log_response_details(exc)
+        try:
+            _log_response_details(exc)
+        except Exception:
+            logging.exception("Failed to log response details")
         raise
