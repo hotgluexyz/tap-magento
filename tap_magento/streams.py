@@ -621,10 +621,8 @@ class PricesStream(MagentoStream):
     def post_process(self, row, context):
 
         if not isinstance(row, dict) or not row:
-            self.logger.warning(f"WARNING: Row is invalid: {row}; and context: {context}")
             return None
         if not isinstance(context, dict) or not context:
-            self.logger.warning(f"WARNING: Context is invalid: {context}; and row: {row}")
             return None
 
         row["hg_fetched_at"] = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
@@ -740,20 +738,11 @@ class PricesStream(MagentoStream):
                         yield current_bundle_child
 
     
-    def _validate_and_yield_product(self, product, product_identifier, response):
+    def _validate_and_yield_product(self, product):
         if not isinstance(product, dict):
-            self.logger.warning(f"Response: {response}. WARNING: Product is not a dict for product {product_identifier}.")
             return
         if not product:
-            self.logger.warning(f"Response: {response}. WARNING: Items is empty for product {product_identifier}.")
             return
-        if not product.get("sku"):
-            self.logger.warning(f"Response: {response}. WARNING: Sku is empty for product {product}.")
-        elif any(
-            not (variant.get("product") or {}).get("sku")
-            for variant in product.get("variants", [])
-        ):
-            self.logger.warning(f" Response: {response}. WARNING: Variant sku not present for product {product}.")
         yield from self.deal_with_bundle_and_variants(product)
     
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
@@ -764,11 +753,11 @@ class PricesStream(MagentoStream):
                         product = {}
                     else:
                         product = product_batch[product_batch_item]["items"][0]
-                    yield from self._validate_and_yield_product(product, product_batch_item, response)
+                    yield from self._validate_and_yield_product(product)
             return
         elif self.current_visibility in [2, 4]:
             for product in super().parse_response(response):
-                yield from self._validate_and_yield_product(product, product, response)
+                yield from self._validate_and_yield_product(product)
             return
         else:
             yield from super().parse_response(response)
