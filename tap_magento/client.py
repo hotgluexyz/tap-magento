@@ -233,20 +233,49 @@ class MagentoStream(RESTStream):
             if total_count > current_page * page_size:
                 next_page_token = current_page + 1
             elif self.cluster_date:
-                # Cluster window exhausted; advance max_date past it and resume normal sync.
-                self.logger.info(f"Cluster at {self.cluster_date} fully traversed. Advancing max_date past it.")
-                self.max_date = self.cluster_date
-                self.cluster_date = None
-                self.cluster_min_id = None
-                self.max_pagination = 200
-                next_page_token = 1
+                if self._cluster_window_reset:
+                    # parse_response just opened a new cluster window; let get_url_params fire the first cluster request.
+                    next_page_token = 1
+                else:
+                    # Cluster window exhausted; advance max_date past it and resume normal sync.
+                    self.logger.info(f"Cluster at {self.cluster_date} fully traversed. Advancing max_date past it.")
+                    self.max_date = self.cluster_date
+                    self.cluster_date = None
+                    self.cluster_min_id = None
+                    self.max_pagination = 200
+                    next_page_token = 1
         # store at global level the current page to change start_date for big amounts of data
         self.current_page = next_page_token     
         return next_page_token
     
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
-     
+
+    def _apply_end_date_filter(self, params: dict) -> None:
+        """Add an upper-bound date filter when end_date is configured."""
+        end_date = self.config.get("end_date")
+        if not end_date:
+            return
+        try:
+            end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
+            params["searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
+            params["searchCriteria[filterGroups][1][filters][0][value]"] = end_date
+            params["searchCriteria[filterGroups][1][filters][0][condition_type]"] = "lteq"
+        except Exception:
+            self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
+
+    def _apply_cluster_filter(self, params: dict) -> None:
+        """Replace the date-gt filter with an eq+increment_id window to avoid deep pagination."""
+        if self._cluster_window_reset:
+            params["searchCriteria[currentPage]"] = 1
+            self._cluster_window_reset = False
+        cluster_date_str = self.cluster_date.strftime("%Y-%m-%d+%H:%M:%S")
+        params["searchCriteria[filterGroups][0][filters][0][value]"] = cluster_date_str
+        params["searchCriteria[filterGroups][0][filters][0][condition_type]"] = "eq"
+        params["searchCriteria[filterGroups][3][filters][0][field]"] = "increment_id"
+        params["searchCriteria[filterGroups][3][filters][0][value]"] = self.cluster_min_id
+        params["searchCriteria[filterGroups][3][filters][0][condition_type]"] = "gt"
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -317,33 +346,9 @@ class MagentoStream(RESTStream):
 
                 # Cluster mode: replace the date-gt filter with eq+increment_id to avoid deep pagination.
                 if self.cluster_date and self.cluster_min_id and self.name == "orders":
-                    if self._cluster_window_reset:
-                        # next_page_token is stale from the previous filter; reset to page 1.
-                        params["searchCriteria[currentPage]"] = 1
-                        self._cluster_window_reset = False
-                    cluster_date_str = self.cluster_date.strftime("%Y-%m-%d+%H:%M:%S")
-                    params["searchCriteria[filterGroups][0][filters][0][value]"] = cluster_date_str
-                    params["searchCriteria[filterGroups][0][filters][0][condition_type]"] = "eq"
-                    params["searchCriteria[filterGroups][3][filters][0][field]"] = "increment_id"
-                    params["searchCriteria[filterGroups][3][filters][0][value]"] = self.cluster_min_id
-                    params["searchCriteria[filterGroups][3][filters][0][condition_type]"] = "gt"
+                    self._apply_cluster_filter(params)
 
-                # end date
-                end_date = self.config.get("end_date")
-                if end_date:
-                    try:
-                        end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][field]"
-                        ] = self.replication_key
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][value]"
-                        ] = end_date
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][condition_type]"
-                        ] = "lteq"
-                    except:
-                        self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
+                self._apply_end_date_filter(params)
 
 
         if (
