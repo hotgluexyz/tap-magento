@@ -43,6 +43,9 @@ class MagentoStream(RESTStream):
     current_page = None
     max_pagination = 200
     max_date = None
+    cluster_date = None          # timestamp of the same-second cluster currently being traversed
+    cluster_min_id = None        # last increment_id seen in the current cluster window
+    _cluster_window_reset = False  # forces page 1 on the first request of a new cluster window
     retries_500_status = 0
     error_message = None
     last_store_code = None
@@ -229,13 +232,50 @@ class MagentoStream(RESTStream):
 
             if total_count > current_page * page_size:
                 next_page_token = current_page + 1
+            elif self.cluster_date:
+                if self._cluster_window_reset:
+                    # parse_response just opened a new cluster window; let get_url_params fire the first cluster request.
+                    next_page_token = 1
+                else:
+                    # Cluster window exhausted; advance max_date past it and resume normal sync.
+                    self.logger.info(f"Cluster at {self.cluster_date} fully traversed. Advancing max_date past it.")
+                    self.max_date = self.cluster_date
+                    self.cluster_date = None
+                    self.cluster_min_id = None
+                    self.max_pagination = 200
+                    next_page_token = 1
         # store at global level the current page to change start_date for big amounts of data
         self.current_page = next_page_token     
         return next_page_token
     
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
-     
+
+    def _apply_end_date_filter(self, params: dict) -> None:
+        """Add an upper-bound date filter when end_date is configured."""
+        end_date = self.config.get("end_date")
+        if not end_date:
+            return
+        try:
+            end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
+            params["searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
+            params["searchCriteria[filterGroups][1][filters][0][value]"] = end_date
+            params["searchCriteria[filterGroups][1][filters][0][condition_type]"] = "lteq"
+        except Exception:
+            self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
+
+    def _apply_cluster_filter(self, params: dict) -> None:
+        """Replace the date-gt filter with an eq+increment_id window to avoid deep pagination."""
+        if self._cluster_window_reset:
+            params["searchCriteria[currentPage]"] = 1
+            self._cluster_window_reset = False
+        cluster_date_str = self.cluster_date.strftime("%Y-%m-%d+%H:%M:%S")
+        params["searchCriteria[filterGroups][0][filters][0][value]"] = cluster_date_str
+        params["searchCriteria[filterGroups][0][filters][0][condition_type]"] = "eq"
+        params["searchCriteria[filterGroups][3][filters][0][field]"] = "increment_id"
+        params["searchCriteria[filterGroups][3][filters][0][value]"] = self.cluster_min_id
+        params["searchCriteria[filterGroups][3][filters][0][condition_type]"] = "gt"
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -245,9 +285,12 @@ class MagentoStream(RESTStream):
             context = {}
 
         if context.get("store_code"):
-            # Need to reset max_date when store_code changes
+            # Reset windowing (max_date) and cluster state when store_code changes
             if self.max_date and self.last_store_code != context["store_code"]:
                 self.max_date = None
+                self.cluster_date = None
+                self.cluster_min_id = None
+                self._cluster_window_reset = False
 
             # Store the last store_code to check if it has changed later
             self.last_store_code = context["store_code"]
@@ -300,23 +343,12 @@ class MagentoStream(RESTStream):
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
-                
-                # end date
-                end_date = self.config.get("end_date")
-                if end_date:
-                    try:
-                        end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][field]"
-                        ] = self.replication_key
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][value]"
-                        ] = end_date
-                        params[
-                            "searchCriteria[filterGroups][1][filters][0][condition_type]"
-                        ] = "lteq"
-                    except:
-                        self.logger.info(f"End date is not a valid datetime {end_date}, running sync without end_date")
+
+                # Cluster mode: replace the date-gt filter with eq+increment_id to avoid deep pagination.
+                if self.cluster_date and self.cluster_min_id and self.name == "orders":
+                    self._apply_cluster_filter(params)
+
+                self._apply_end_date_filter(params)
 
 
         if (
@@ -511,21 +543,35 @@ class MagentoStream(RESTStream):
         try:
             response_content = response.json()
             if self.replication_key and self.current_page == self.max_pagination:
-                # get max date
-                dates = [parse(x[self.replication_key]) for x in super().parse_response(response)]
-                sorted_dates = list(set(dates))
-                sorted_dates = sorted(sorted_dates, reverse=True)
-                if len(sorted_dates) < 2:
-                    # If the max date already matches, increase the max pagination
-                    if self.max_date == (sorted_dates[0] - timedelta(seconds=1)):
-                        self.max_pagination = self.max_pagination + 1
+                items = list(super().parse_response(response))
+                if items:
+                    sorted_dates = sorted({parse(x[self.replication_key]) for x in items}, reverse=True)
+                    if len(sorted_dates) < 2:
+                        # All records on this boundary page share one timestamp.
+                        cluster_ts = sorted_dates[0]
+                        if self.max_date == (cluster_ts - timedelta(seconds=1)):
+                            # We've seen this boundary before: advance the increment_id
+                            # cursor to slide through the cluster without deep pagination.
+                            if self.name == "orders" and items[-1].get("increment_id") is not None:
+                                last_id = items[-1]["increment_id"]
+                                self.logger.info(f"Cluster window boundary at {cluster_ts}: cursor -> {last_id}")
+                                self.cluster_min_id = last_id
+                                self.cluster_date = cluster_ts
+                                self._cluster_window_reset = True
+                                self.max_pagination = 200
+                            else:
+                                # No increment_id cursor available; allow one more page of depth.
+                                self.max_pagination += 1
+                        else:
+                            # First pass at this boundary; record it and let the overflow reset fire.
+                            self.max_date = cluster_ts - timedelta(seconds=1)
                     else:
-                        # If this entire page is the same date, the max_date should be set to the current max_date - 1 second
-                        self.max_date = sorted_dates[0] - timedelta(seconds=1)
-                else:
-                    # filtering params use "gt" therefore use second greatest max_date to avoid losing data
-                    prev_date = sorted_dates[1]
-                    self.max_date = prev_date
+                        # Mixed timestamps on boundary page: advance the window normally.
+                        self.max_date = sorted_dates[1]
+                        if self.cluster_date:
+                            self.logger.info(f"Exiting cluster at {self.cluster_date}; max_date -> {sorted_dates[1]}")
+                            self.cluster_date = None
+                            self.cluster_min_id = None
 
             # TODO: I think we should get rid of below --> (2)
             # TODO: Commenting this out to avoid losing this logic, if any other issue is found
