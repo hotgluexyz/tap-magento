@@ -617,14 +617,29 @@ class MagentoStream(RESTStream):
         )
         return self._request(prepared_request, context)
 
+    def _get_throttle_seconds(self) -> float:
+        raw = self.config.get("throttle_seconds", 0)
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            self.logger.warning(
+                f"Invalid throttle_seconds value {raw!r}, defaulting to 0"
+            )
+            return 0.0
+
     def request_records(self, context: Optional[dict]) -> Iterable[dict]:
         next_page_token: Any = None
         finished = False
         # use request decorator for prepare_and_request because on backoff we
         # need to prepare the request again in order to create a new OAuth1 nounce
         decorated_request = self.request_decorator(self.prepare_and_request)
+        throttle_seconds = self._get_throttle_seconds()
+        if throttle_seconds > 0:
+            self.logger.info(f"Throttling enabled: {throttle_seconds}s between page requests")
 
-        while not finished:            
+        while not finished:
+            if throttle_seconds > 0:
+                time.sleep(throttle_seconds)
             resp = decorated_request(context, next_page_token)
 
             for row in self.parse_response(resp):

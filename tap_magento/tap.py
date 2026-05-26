@@ -78,6 +78,11 @@ class TapMagento(Tap):
         th.Property(
             "store_url", th.StringType, required=True, description="The store url"
         ),
+        th.Property(
+            "throttle_seconds",
+            th.NumberType,
+            description="Optional delay in seconds between page requests to avoid overloading the source platform. Defaults to 0 (no throttling).",
+        ),
     ).to_dict()
 
     def discover_streams(self) -> List[Stream]:
