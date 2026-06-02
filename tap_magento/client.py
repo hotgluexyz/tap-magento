@@ -507,7 +507,7 @@ class MagentoStream(RESTStream):
                         greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
                         # add a day and iterate
                         greatest_date = greatest_date + timedelta(days=1)
-                        self.new_start_date = greatest_date.strftime(f"%Y-%m-%d+%H:%M:%S")
+                        self.new_start_date = greatest_date.strftime("%Y-%m-%d+%H:%M:%S")
                 else:
                     raise FatalAPIError(f"Error {response.status_code} from {response.url}, response: {response.text}")
             except JSONDecodeError:
