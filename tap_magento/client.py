@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup
 
 import singer
 from singer import StateMessage
+from dateutil.relativedelta import relativedelta
 
 def extract_text_from_html(content: str) -> str:
     soup = BeautifulSoup(content, 'html.parser')
@@ -62,7 +63,9 @@ class MagentoStream(RESTStream):
             for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
                 self._requests_session.cookies[cookie] = cookie_value
         self.new_start_date = None
-
+        self.chunk_by_date = False
+        self.end_pagination = False
+    
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
@@ -245,19 +248,37 @@ class MagentoStream(RESTStream):
                     self.max_pagination = 200
                     next_page_token = 1
         # store at global level the current page to change start_date for big amounts of data
-        self.current_page = next_page_token     
+        self.current_page = next_page_token
+
+        if self.chunk_by_date:
+            if self.end_pagination:
+                return None
+            if not next_page_token:
+                self.new_start_date = self.new_end_date
+                return 1
+
         return next_page_token
     
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
 
-    def _apply_end_date_filter(self, params: dict) -> None:
+    def _apply_end_date_filter(self, params: dict, start_date:datetime) -> None:
         """Add an upper-bound date filter when end_date is configured."""
         end_date = self.config.get("end_date")
+
+        if self.chunk_by_date:
+            start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S")
+            end_date = start_date_ + relativedelta(days=1)
+            end_date = end_date.strftime("%Y-%m-%d+%H:%M:%S")
+            self.new_end_date = end_date
+
+            now = datetime.now()
+            if self.new_end_date and datetime.strptime(self.new_end_date, "%Y-%m-%d+%H:%M:%S") > now:
+                self.end_pagination = True
+        
         if not end_date:
             return
         try:
-            end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
             params["searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
             params["searchCriteria[filterGroups][1][filters][0][value]"] = end_date
             params["searchCriteria[filterGroups][1][filters][0][condition_type]"] = "lteq"
@@ -336,6 +357,7 @@ class MagentoStream(RESTStream):
 
             if start_date is not None:
                 start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
+                start_date = self.new_start_date or start_date
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
@@ -348,7 +370,7 @@ class MagentoStream(RESTStream):
                 if self.cluster_date and self.cluster_min_id and self.name == "orders":
                     self._apply_cluster_filter(params)
 
-                self._apply_end_date_filter(params)
+                self._apply_end_date_filter(params, start_date)
 
 
         if (
@@ -498,6 +520,7 @@ class MagentoStream(RESTStream):
             self.logger.info(msg)
             raise RetriableAPIError(msg)
         elif response.status_code == 504:
+            self.chunk_by_date = True
             raise RetriableAPIError(
                 f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
             )
