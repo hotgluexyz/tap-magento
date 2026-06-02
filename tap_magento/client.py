@@ -250,12 +250,11 @@ class MagentoStream(RESTStream):
         # store at global level the current page to change start_date for big amounts of data
         self.current_page = next_page_token
 
-        if self.chunk_by_date:
+        if self.chunk_by_date and not next_page_token:
             if self.end_pagination:
                 return None
-            if not next_page_token:
-                self.new_start_date = self.new_end_date
-                return 1
+            self.new_start_date = self.new_end_date
+            return 1
 
         return next_page_token
     
