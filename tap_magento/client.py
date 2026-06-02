@@ -312,6 +312,8 @@ class MagentoStream(RESTStream):
                 self.cluster_date = None
                 self.cluster_min_id = None
                 self._cluster_window_reset = False
+                self.end_pagination = False
+                self.chunk_by_date = False
 
             # Store the last store_code to check if it has changed later
             self.last_store_code = context["store_code"]
@@ -505,7 +507,7 @@ class MagentoStream(RESTStream):
                         greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
                         # add a day and iterate
                         greatest_date = greatest_date + timedelta(days=1)
-                        self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
+                        self.new_start_date = greatest_date.strftime(f"%Y-%m-%d+%H:%M:%S")
                 else:
                     raise FatalAPIError(f"Error {response.status_code} from {response.url}, response: {response.text}")
             except JSONDecodeError:
@@ -678,7 +680,7 @@ class MagentoStream(RESTStream):
                     f"Pagination token {next_page_token} is identical to prior token."
                 )
             # Cycle until get_next_page_token() no longer returns a value
-            finished = not next_page_token
+            finished = next_page_token is None
 
     def _write_state_message(self) -> None:
         """Write out a STATE message with the latest state."""
