@@ -268,7 +268,7 @@ class MagentoStream(RESTStream):
 
         if self.chunk_by_date:
             start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S")
-            end_date = start_date_ + relativedelta(days=1)
+            end_date = start_date_ + relativedelta(years=1)
             end_date = end_date.strftime("%Y-%m-%d+%H:%M:%S")
             self.new_end_date = end_date
 
