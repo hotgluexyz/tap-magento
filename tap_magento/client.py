@@ -306,11 +306,13 @@ class MagentoStream(RESTStream):
 
         if context.get("store_code"):
             # Reset windowing (max_date) and cluster state when store_code changes
-            if self.max_date and self.last_store_code != context["store_code"]:
-                self.max_date = None
-                self.cluster_date = None
-                self.cluster_min_id = None
-                self._cluster_window_reset = False
+            if self.last_store_code != context["store_code"]:
+                if self.max_date:
+                    self.max_date = None
+                    self.cluster_date = None
+                    self.cluster_min_id = None
+                    self._cluster_window_reset = False
+                # always restore this if store_code changes
                 self.end_pagination = False
                 self.chunk_by_date = False
 
