@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 import singer
 from singer import StateMessage
 from dateutil.relativedelta import relativedelta
+from datetime import timezone
 
 def extract_text_from_html(content: str) -> str:
     soup = BeautifulSoup(content, 'html.parser')
@@ -263,20 +264,31 @@ class MagentoStream(RESTStream):
 
     def _apply_end_date_filter(self, params: dict, start_date:datetime) -> None:
         """Add an upper-bound date filter when end_date is configured."""
-        end_date = self.config.get("end_date")
+        end_date = None
+        config_end_date = self.config.get("end_date")
+        if config_end_date:
+            config_end_date = parse(config_end_date)
 
         if self.chunk_by_date:
-            start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S")
-            end_date = start_date_ + relativedelta(years=1)
-            end_date = end_date.strftime("%Y-%m-%d+%H:%M:%S")
-            self.new_end_date = end_date
+            start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S").replace(tzinfo=timezone.utc)
+            end_date = start_date_ + relativedelta(days=1)
 
-            now = datetime.now()
-            if self.new_end_date and datetime.strptime(self.new_end_date, "%Y-%m-%d+%H:%M:%S") > now:
+            date_limit = datetime.now(timezone.utc)
+            if config_end_date:
+                date_limit = min(config_end_date, date_limit)
+
+            if end_date > date_limit:
                 self.end_pagination = True
+                end_date = date_limit
+            
+            self.new_end_date = end_date
+        else:
+            end_date = config_end_date
         
         if not end_date:
             return
+        
+        end_date = end_date.strftime("%Y-%m-%d+%H:%M:%S")
         try:
             params["searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
             params["searchCriteria[filterGroups][1][filters][0][value]"] = end_date
@@ -315,6 +327,7 @@ class MagentoStream(RESTStream):
                 # always restore this if store_code changes
                 self.end_pagination = False
                 self.chunk_by_date = False
+                self.new_start_date = None
 
             # Store the last store_code to check if it has changed later
             self.last_store_code = context["store_code"]
@@ -359,12 +372,12 @@ class MagentoStream(RESTStream):
                 params["searchCriteria[sortOrders][1][direction]"] = "ASC"
 
             if start_date is not None:
-                start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
                 start_date = self.new_start_date or start_date
+                start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
-                params["searchCriteria[filterGroups][0][filters][0][value]"] = self.new_start_date or start_date
+                params["searchCriteria[filterGroups][0][filters][0][value]"] = start_date
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
