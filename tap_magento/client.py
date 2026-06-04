@@ -373,7 +373,9 @@ class MagentoStream(RESTStream):
 
             if start_date is not None:
                 start_date = self.new_start_date or start_date
-                start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
+                # 404 already types it as a string, so we don't need to convert it again
+                if not isinstance(start_date, str):
+                    start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
