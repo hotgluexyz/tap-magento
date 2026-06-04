@@ -543,7 +543,8 @@ class MagentoStream(RESTStream):
             self.logger.info(msg)
             raise RetriableAPIError(msg)
         elif response.status_code == 504:
-            if self.replication_key:
+            # chunk by date, if data fails immediately (hgi-10414)
+            if self.replication_key and not self.current_page:
                 self.chunk_by_date = True
             raise RetriableAPIError(
                 f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
