@@ -308,6 +308,25 @@ class MagentoStream(RESTStream):
         params["searchCriteria[filterGroups][3][filters][0][value]"] = self.cluster_min_id
         params["searchCriteria[filterGroups][3][filters][0][condition_type]"] = "gt"
 
+    def handle_store_code_change(self, context: dict) -> None:
+        """Handle store code change."""
+        if not context or not context.get("store_code"):
+            return
+        # Reset windowing (max_date) and cluster state when store_code changes
+        if self.last_store_code != context["store_code"]:
+            if self.max_date:
+                self.max_date = None
+                self.cluster_date = None
+                self.cluster_min_id = None
+                self._cluster_window_reset = False
+            # always restore this if store_code changes
+            self.end_pagination = False
+            self.chunk_by_date = False
+            self.new_start_date = None
+
+        # Store the last store_code to check if it has changed later
+        self.last_store_code = context["store_code"]
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -315,22 +334,8 @@ class MagentoStream(RESTStream):
         params = {}
         if context is None:
             context = {}
-
-        if context.get("store_code"):
-            # Reset windowing (max_date) and cluster state when store_code changes
-            if self.last_store_code != context["store_code"]:
-                if self.max_date:
-                    self.max_date = None
-                    self.cluster_date = None
-                    self.cluster_min_id = None
-                    self._cluster_window_reset = False
-                # always restore this if store_code changes
-                self.end_pagination = False
-                self.chunk_by_date = False
-                self.new_start_date = None
-
-            # Store the last store_code to check if it has changed later
-            self.last_store_code = context["store_code"]
+        
+        self.handle_store_code_change(context)
 
         # calculate start_date
         start_date = self.get_starting_timestamp(context)
