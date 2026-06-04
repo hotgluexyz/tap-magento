@@ -373,7 +373,7 @@ class MagentoStream(RESTStream):
 
             if start_date is not None:
                 start_date = self.new_start_date or start_date
-                # 404 already types it as a string, so we don't need to convert it again
+                # when hitting 404, validte_response  already formats it as a string
                 if not isinstance(start_date, str):
                     start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
                 params[
