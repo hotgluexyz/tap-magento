@@ -697,7 +697,7 @@ class MagentoStream(RESTStream):
                 response=resp, previous_token=previous_token
             )
             # when iterating daily due to missing products 404 error there could be same next_page_token 1
-            if next_page_token and next_page_token == previous_token and self.error_message not in self.allowed_error_messages:
+            if next_page_token and next_page_token == previous_token and self.error_message not in self.allowed_error_messages and not self.chunk_by_date:
                 raise RuntimeError(
                     f"Loop detected in pagination. "
                     f"Pagination token {next_page_token} is identical to prior token."
