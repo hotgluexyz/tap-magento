@@ -267,7 +267,7 @@ class MagentoStream(RESTStream):
         end_date = None
         config_end_date = self.config.get("end_date")
         if config_end_date:
-            config_end_date = parse(config_end_date)
+            config_end_date = parse(config_end_date).replace(tzinfo=timezone.utc)
 
         if self.chunk_by_date:
             start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S").replace(tzinfo=timezone.utc)
