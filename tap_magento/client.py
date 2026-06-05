@@ -22,6 +22,8 @@ from bs4 import BeautifulSoup
 
 import singer
 from singer import StateMessage
+from dateutil.relativedelta import relativedelta
+from datetime import timezone
 
 def extract_text_from_html(content: str) -> str:
     soup = BeautifulSoup(content, 'html.parser')
@@ -62,7 +64,9 @@ class MagentoStream(RESTStream):
             for cookie, cookie_value in self.config.get("custom_cookies", {}).items():
                 self._requests_session.cookies[cookie] = cookie_value
         self.new_start_date = None
-
+        self.chunk_by_date = False
+        self.end_pagination = False
+    
     @property
     def url_base(self) -> str:
         """Return the API URL root, configurable via tap settings."""
@@ -245,19 +249,47 @@ class MagentoStream(RESTStream):
                     self.max_pagination = 200
                     next_page_token = 1
         # store at global level the current page to change start_date for big amounts of data
-        self.current_page = next_page_token     
+        self.current_page = next_page_token
+
+        if self.chunk_by_date and not next_page_token:
+            if self.end_pagination:
+                return None
+            self.new_start_date = self.new_end_date
+            return 1
+
         return next_page_token
     
     def get_source_items_page_size(self):
         return self.config.get("source_items_page_size",2000)
 
-    def _apply_end_date_filter(self, params: dict) -> None:
+    def _apply_end_date_filter(self, params: dict, start_date:datetime) -> None:
         """Add an upper-bound date filter when end_date is configured."""
-        end_date = self.config.get("end_date")
+        end_date = None
+        config_end_date = self.config.get("end_date")
+        if config_end_date:
+            config_end_date = parse(config_end_date).replace(tzinfo=timezone.utc)
+
+        if self.chunk_by_date:
+            start_date_ = datetime.strptime(start_date, "%Y-%m-%d+%H:%M:%S").replace(tzinfo=timezone.utc)
+            end_date = start_date_ + relativedelta(years=1)
+
+            date_limit = datetime.now(timezone.utc)
+            if config_end_date:
+                date_limit = min(config_end_date, date_limit)
+
+            if end_date > date_limit:
+                self.end_pagination = True
+                end_date = date_limit
+            
+            self.new_end_date = end_date
+        else:
+            end_date = config_end_date
+        
         if not end_date:
             return
+        
+        end_date = end_date.strftime("%Y-%m-%d+%H:%M:%S")
         try:
-            end_date = parse(end_date).strftime("%Y-%m-%d+%H:%M:%S")
             params["searchCriteria[filterGroups][1][filters][0][field]"] = self.replication_key
             params["searchCriteria[filterGroups][1][filters][0][value]"] = end_date
             params["searchCriteria[filterGroups][1][filters][0][condition_type]"] = "lteq"
@@ -276,6 +308,25 @@ class MagentoStream(RESTStream):
         params["searchCriteria[filterGroups][3][filters][0][value]"] = self.cluster_min_id
         params["searchCriteria[filterGroups][3][filters][0][condition_type]"] = "gt"
 
+    def handle_store_code_change(self, context: dict) -> None:
+        """Handle store code change."""
+        if not context or not context.get("store_code"):
+            return
+        # Reset windowing (max_date) and cluster state when store_code changes
+        if self.last_store_code != context["store_code"]:
+            if self.max_date:
+                self.max_date = None
+                self.cluster_date = None
+                self.cluster_min_id = None
+                self._cluster_window_reset = False
+            # always restore this if store_code changes
+            self.end_pagination = False
+            self.chunk_by_date = False
+            self.new_start_date = None
+
+        # Store the last store_code to check if it has changed later
+        self.last_store_code = context["store_code"]
+
     def get_url_params(
         self, context, next_page_token
     ):
@@ -283,17 +334,8 @@ class MagentoStream(RESTStream):
         params = {}
         if context is None:
             context = {}
-
-        if context.get("store_code"):
-            # Reset windowing (max_date) and cluster state when store_code changes
-            if self.max_date and self.last_store_code != context["store_code"]:
-                self.max_date = None
-                self.cluster_date = None
-                self.cluster_min_id = None
-                self._cluster_window_reset = False
-
-            # Store the last store_code to check if it has changed later
-            self.last_store_code = context["store_code"]
+        
+        self.handle_store_code_change(context)
 
         # calculate start_date
         start_date = self.get_starting_timestamp(context)
@@ -335,11 +377,14 @@ class MagentoStream(RESTStream):
                 params["searchCriteria[sortOrders][1][direction]"] = "ASC"
 
             if start_date is not None:
-                start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
+                start_date = self.new_start_date or start_date
+                # when hitting 404, validte_response  already formats it as a string
+                if not isinstance(start_date, str):
+                    start_date = start_date.strftime("%Y-%m-%d+%H:%M:%S")
                 params[
                     "searchCriteria[filterGroups][0][filters][0][field]"
                 ] = self.replication_key
-                params["searchCriteria[filterGroups][0][filters][0][value]"] = self.new_start_date or start_date
+                params["searchCriteria[filterGroups][0][filters][0][value]"] = start_date
                 params[
                     "searchCriteria[filterGroups][0][filters][0][condition_type]"
                 ] = "gt"
@@ -348,7 +393,7 @@ class MagentoStream(RESTStream):
                 if self.cluster_date and self.cluster_min_id and self.name == "orders":
                     self._apply_cluster_filter(params)
 
-                self._apply_end_date_filter(params)
+                self._apply_end_date_filter(params, start_date)
 
 
         if (
@@ -483,7 +528,7 @@ class MagentoStream(RESTStream):
                         greatest_date = current_rep_key_value if current_rep_key_value > parse(self.new_start_date) else parse(self.new_start_date)
                         # add a day and iterate
                         greatest_date = greatest_date + timedelta(days=1)
-                        self.new_start_date = greatest_date.strftime("%Y-%m-%d %H:%M:%S")
+                        self.new_start_date = greatest_date.strftime("%Y-%m-%d+%H:%M:%S")
                 else:
                     raise FatalAPIError(f"Error {response.status_code} from {response.url}, response: {response.text}")
             except JSONDecodeError:
@@ -498,6 +543,9 @@ class MagentoStream(RESTStream):
             self.logger.info(msg)
             raise RetriableAPIError(msg)
         elif response.status_code == 504:
+            # chunk by date, if data fails immediately (hgi-10414)
+            if self.replication_key and not self.current_page:
+                self.chunk_by_date = True
             raise RetriableAPIError(
                 f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
             )
@@ -649,13 +697,13 @@ class MagentoStream(RESTStream):
                 response=resp, previous_token=previous_token
             )
             # when iterating daily due to missing products 404 error there could be same next_page_token 1
-            if next_page_token and next_page_token == previous_token and self.error_message not in self.allowed_error_messages:
+            if next_page_token and next_page_token == previous_token and self.error_message not in self.allowed_error_messages and not self.chunk_by_date:
                 raise RuntimeError(
                     f"Loop detected in pagination. "
                     f"Pagination token {next_page_token} is identical to prior token."
                 )
             # Cycle until get_next_page_token() no longer returns a value
-            finished = not next_page_token
+            finished = next_page_token is None
 
     def _write_state_message(self) -> None:
         """Write out a STATE message with the latest state."""
