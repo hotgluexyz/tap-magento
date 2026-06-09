@@ -549,6 +549,13 @@ class MagentoStream(RESTStream):
             raise RetriableAPIError(
                 f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
             )
+        elif ("sucuri_cloudproxy_js" in response.text
+            or response.headers.get("Server") == "Sucuri/Cloudproxy"
+        ):
+            raise FatalAPIError(
+                f"Sucuri firewall is blocking Magento REST API requests to {response.request.url}. "
+                "Ask the store admin to whitelist hotglue server IPs or bypass bot protection for /rest/* paths."
+            )
         elif response.status_code == 403 or "cf-error-details" in response.text:
             resp_text = extract_text_from_html(response.text)
             raise FatalAPIError(resp_text)
