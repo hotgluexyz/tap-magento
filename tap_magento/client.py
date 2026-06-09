@@ -495,6 +495,14 @@ class MagentoStream(RESTStream):
         )
         raise FatalAPIError(msg)
 
+    def _raise_if_sucuri_block(self, response: requests.Response) -> None:
+        if "sucuri_cloudproxy_js" not in response.text:
+            return
+        raise FatalAPIError(
+            f"Sucuri firewall is blocking Magento REST API requests to {response.request.url}. "
+            "Ask the store admin to whitelist hotglue server IPs or bypass bot protection for /rest/* paths."
+        )
+
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response."""
         self.error_message = None
@@ -512,6 +520,8 @@ class MagentoStream(RESTStream):
                 time.sleep(delay)
         if response.status_code == 429:
             raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
+
+        self._raise_if_sucuri_block(response)
 
         if response.status_code in [404]:
             try:
