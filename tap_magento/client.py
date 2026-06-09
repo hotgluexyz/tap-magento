@@ -327,6 +327,37 @@ class MagentoStream(RESTStream):
         # Store the last store_code to check if it has changed later
         self.last_store_code = context["store_code"]
 
+    def get_estimated_record_count(self, context: Optional[dict] = None) -> Optional[int]:
+        if not self.config.get("emit_estimated_record_totals_snapshot", True):
+            return None
+
+        if self.parent_stream_type is not None:
+            return None
+
+        return self._get_total_count_from_api(context)
+
+    def _get_total_count_from_api(self, context: Optional[dict] = None) -> Optional[int]:
+        """Probe the list/search endpoint and return total_count without mutating sync state."""
+        original_default_page_size = self.default_page_size
+        try:
+            self.default_page_size = 1
+            prepared = self.prepare_request(context, next_page_token=None)
+            response = self.requests_session.send(prepared)
+            if response.status_code != 200:
+                self.logger.info(
+                    "Skipping estimated record count for stream='%s': HTTP %s",
+                    self.name,
+                    response.status_code,
+                )
+                return None
+
+            total_count = response.json().get("total_count")
+            if total_count is None:
+                return None
+            return int(total_count)
+        finally:
+            self.default_page_size = original_default_page_size
+
     def get_url_params(
         self, context, next_page_token
     ):
