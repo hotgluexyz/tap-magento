@@ -68,16 +68,6 @@ class StoresStream(MagentoStream):
     def get_next_page_token(self, response, previous_token):
         return None
 
-    def get_estimated_record_count(self, context: Optional[dict] = None) -> Optional[int]:
-        if not self.config.get("emit_estimated_record_totals_snapshot", True):
-            return None
-
-        prepared = self.prepare_request(None, next_page_token=None)
-        response = self.requests_session.send(prepared)
-        if response.status_code != 200:
-            return None
-        return sum(1 for _ in self.parse_response(response))
-
 
 class UsersStream(MagentoStream):
     """Define custom stream."""
