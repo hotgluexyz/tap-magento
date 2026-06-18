@@ -329,25 +329,20 @@ class MagentoStream(RESTStream):
 
     def get_estimated_record_count(self) -> Optional[int]:
         """Probe the list/search endpoint and return total_count without mutating sync state."""
-        original_default_page_size = self.default_page_size
-        try:
-            self.default_page_size = 1
-            self._write_starting_replication_value(None)
-            prepared = self.prepare_request(context=None, next_page_token=None)
-            response = self.requests_session.send(prepared)
-            if response.status_code != 200:
-                self.logger.info(
-                    "Skipping estimated record count for stream='%s': HTTP %s",
-                    self.name,
-                    response.status_code,
-                )
-                return None
+        self._write_starting_replication_value(None)
+        prepared = self.prepare_request(context=None, next_page_token=None)
+        response = self.requests_session.send(prepared)
+        if response.status_code != 200:
+            self.logger.info(
+                "Skipping estimated record count for stream='%s': HTTP %s",
+                self.name,
+                response.status_code,
+            )
+            return None
 
-            json_data = response.json()
-            total_count = json_data.get("total_count")
-            return total_count
-        finally:
-            self.default_page_size = original_default_page_size
+        json_data = response.json()
+        total_count = json_data.get("total_count")
+        return total_count
 
     def get_url_params(
         self, context, next_page_token
