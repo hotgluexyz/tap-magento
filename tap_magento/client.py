@@ -341,8 +341,12 @@ class MagentoStream(RESTStream):
             return None
 
         json_data = response.json()
-        total_count = json_data.get("total_count")
-        return total_count
+        if isinstance(json_data, dict):
+            return json_data.get("total_count")
+        if isinstance(json_data, list):
+            #used for stores streams
+            return len(json_data)
+        return None
 
     def get_url_params(
         self, context, next_page_token
