@@ -329,9 +329,6 @@ class MagentoStream(RESTStream):
 
     def get_estimated_record_count(self) -> Optional[int]:
         """Probe the list/search endpoint and return total_count without mutating sync state."""
-        if not self.config.get("emit_estimated_record_totals_snapshot", True):
-            return None
-
         original_default_page_size = self.default_page_size
         try:
             self.default_page_size = 1
