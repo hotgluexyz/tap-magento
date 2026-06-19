@@ -329,27 +329,30 @@ class MagentoStream(RESTStream):
 
     def get_estimated_record_count(self) -> Optional[int]:
         """Probe the list/search endpoint and return total_count without mutating sync state."""
-        self._write_starting_replication_value(None)
-        prepared = self.prepare_request(context=None, next_page_token=None)
-        response = self.requests_session.send(prepared)
         try:
-            self.validate_response(response)
-        except Exception as e:
+            self._write_starting_replication_value(None)
+            prepared = self.prepare_request(context=None, next_page_token=None)
+            response = self.requests_session.send(prepared)
+            if response.status_code != 200:
+                self.logger.info(
+                    "Skipping estimated record count for stream='%s': HTTP %s",
+                    self.name,
+                    response.status_code,
+                )
+                return None
+
+            if self.name == "stores":
+                #StoresStream.parse_response() handle the config flags fetch_all_stores and store_id filtering
+                return sum(1 for _ in self.parse_response(response))
+
+            json_data = response.json()
+            if isinstance(json_data, dict):
+                return json_data.get("total_count")
+        except:
             self.logger.info(
-                "Skipping estimated record count for stream='%s': %s",
+                "Skipping estimated record count for stream='%s'",
                 self.name,
-                e,
             )
-            return None
-
-        if self.name == "stores":
-            #StoresStream.parse_response() handle the config flags fetch_all_stores and store_id filtering
-            return sum(1 for _ in self.parse_response(response))
-
-        json_data = response.json()
-        if isinstance(json_data, dict):
-            return json_data.get("total_count")
-
         return None
 
     def get_url_params(
