@@ -332,20 +332,24 @@ class MagentoStream(RESTStream):
         self._write_starting_replication_value(None)
         prepared = self.prepare_request(context=None, next_page_token=None)
         response = self.requests_session.send(prepared)
-        if response.status_code != 200:
+        try:
+            self.validate_response(response)
+        except Exception as e:
             self.logger.info(
-                "Skipping estimated record count for stream='%s': HTTP %s",
+                "Skipping estimated record count for stream='%s': %s",
                 self.name,
-                response.status_code,
+                e,
             )
             return None
+
+        if self.name == "stores":
+            #StoresStream.parse_response() handle the config flags fetch_all_stores and store_id filtering
+            return sum(1 for _ in self.parse_response(response))
 
         json_data = response.json()
         if isinstance(json_data, dict):
             return json_data.get("total_count")
-        if isinstance(json_data, list):
-            #used for stores streams
-            return len(json_data)
+
         return None
 
     def get_url_params(
