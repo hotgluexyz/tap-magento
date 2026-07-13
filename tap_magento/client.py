@@ -31,10 +31,21 @@ def extract_text_from_html(content: str) -> str:
     return text
 
 
+# Total backoff budget for HTTP 429
+RATE_LIMIT_MAX_SECONDS = 7200 # 2 hours
+# Cap each 429 wait at 10 min
+RATE_LIMIT_MAX_WAIT_SECONDS = 600
+
+
+class RateLimitError(Exception):
+    """HTTP 429 from edge rate limiting; retried with extended backoff."""
+
+
 # logging.getLogger("backoff").setLevel(logging.CRITICAL)
 def handle_backoff(details):
     if details["tries"]==1:
         time.sleep(30)
+
 
 class MagentoStream(RESTStream):
     """Magento stream class."""
@@ -547,7 +558,7 @@ class MagentoStream(RESTStream):
             if delay >0:
                 time.sleep(delay)
         if response.status_code == 429:
-            raise RetriableAPIError(f"Too Many Requests for path: {self.path}")
+            raise RateLimitError(f"Too Many Requests for path: {self.path}")
 
         self._raise_if_sucuri_block(response)
 
@@ -673,15 +684,32 @@ class MagentoStream(RESTStream):
         yield from extract_jsonpath(self.records_jsonpath, input=response_content)
 
     def request_decorator(self, func: Callable) -> Callable:
-        """Instantiate a decorator for handling request failures."""
-        decorator: Callable = backoff.on_exception(
+        """Wrap requests with layered backoff.
+
+        Inner decorator: standard retries for transient errors (500s, timeouts, etc.),
+        capped at 12 tries. Outer decorator: 429-only retries with a longer total
+        budget and a per-wait cap. RateLimitError is not a RetriableAPIError, so
+        each layer only handles its own exception type.
+        """
+        @backoff.on_exception(
+            backoff.expo,
+            RateLimitError,
+            max_time=RATE_LIMIT_MAX_SECONDS,
+            factor=5,
+            max_value=RATE_LIMIT_MAX_WAIT_SECONDS,
+            on_backoff=handle_backoff,
+        )
+        @backoff.on_exception(
             backoff.expo,
             (RetriableAPIError, ConnectionResetError, ProtocolError, InvalidChunkLength, requests.exceptions.RequestException),
             max_tries=12,
             factor=5,
-            on_backoff=handle_backoff
-        )(func)
-        return decorator
+            on_backoff=handle_backoff,
+        )
+        def wrapped(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return wrapped
 
     def _sync_records(  # noqa C901  # too complex
         self, context: Optional[dict] = None
