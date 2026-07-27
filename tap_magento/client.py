@@ -586,6 +586,10 @@ class MagentoStream(RESTStream):
                     f"Content preview: {response.text}"
                 )
                 raise FatalAPIError(msg)
+        
+        elif response.status_code == 502:
+            resp_text = extract_text_from_html(response.text)
+            raise RetriableAPIError(resp_text)
 
         elif response.status_code == 503:
             msg = f"This store is possibly going maintenance mode: {self.path}, {response.request.url}. Content {response.text}"
