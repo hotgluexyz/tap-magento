@@ -120,6 +120,45 @@ class TestValidateResponse:
         )
         stream.validate_response(response)
 
+    def test_graphql_errors_raise_fatal_not_retry(self):
+        """GraphQL error envelopes must not be treated as missing page_info."""
+        stream = _make_stream()
+        response = _response(
+            text='{"data":null,"errors":[{"message":"Field products is restricted"}]}'
+        )
+
+        with pytest.raises(FatalAPIError) as exc_info:
+            stream.validate_response(response)
+
+        msg = str(exc_info.value)
+        assert "GraphQL errors" in msg
+        assert "Field products is restricted" in msg
+        assert "store_id='12'" in msg
+        assert "store_code='fr'" in msg
+
+    def test_non_object_data_raises_api_error(self):
+        stream = _make_stream()
+        response = _response(text='{"data":"not-an-object"}')
+
+        with pytest.raises(RetriableAPIError) as exc_info:
+            stream.validate_response(response)
+
+        msg = str(exc_info.value)
+        assert "Unexpected data payload type" in msg
+        assert "str" in msg
+
+    def test_non_object_page_info_raises_api_error(self):
+        """Truthy non-dict page_info must not AttributeError on .get()."""
+        stream = _make_stream()
+        response = _response(text='{"data":{"products":{"page_info":"broken"}}}')
+
+        with pytest.raises(RetriableAPIError) as exc_info:
+            stream.validate_response(response)
+
+        msg = str(exc_info.value)
+        assert "Unexpected page_info payload type" in msg
+        assert "str" in msg
+
     def test_http_error_is_wrapped_with_store(self):
         stream = _make_stream()
         response = _response(status_code=400, text='{"message":"bad"}')
