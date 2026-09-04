@@ -143,9 +143,7 @@ class TestValidateResponse:
         with pytest.raises(RetriableAPIError) as exc_info:
             stream.validate_response(response)
 
-        msg = str(exc_info.value)
-        assert "Unexpected data payload type" in msg
-        assert "str" in msg
+        assert "missing page_info" in str(exc_info.value)
 
     def test_non_object_page_info_raises_api_error(self):
         """Truthy non-dict page_info must not AttributeError on .get()."""
@@ -155,9 +153,7 @@ class TestValidateResponse:
         with pytest.raises(RetriableAPIError) as exc_info:
             stream.validate_response(response)
 
-        msg = str(exc_info.value)
-        assert "Unexpected page_info payload type" in msg
-        assert "str" in msg
+        assert "missing page_info" in str(exc_info.value)
 
     def test_http_error_is_wrapped_with_store(self):
         stream = _make_stream()

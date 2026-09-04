@@ -930,35 +930,15 @@ class PricesStream(MagentoStream):
                 f"Response preview: {preview!r}"
             )
 
-        data = payload.get("data")
-        if data is not None and not isinstance(data, dict):
-            raise RetriableAPIError(
-                f"Unexpected data payload type for product_prices for {store}: "
-                f"{type(data).__name__}. Response preview: {preview!r}"
-            )
-
-        products = data.get("products") if isinstance(data, dict) else None
-        if products is not None and not isinstance(products, dict):
-            raise RetriableAPIError(
-                f"Unexpected products payload type for product_prices for {store}: "
-                f"{type(products).__name__}. Response preview: {preview!r}"
-            )
-
-        page_info = products.get("page_info") if isinstance(products, dict) else None
-        if page_info is not None and not isinstance(page_info, dict):
-            raise RetriableAPIError(
-                f"Unexpected page_info payload type for product_prices for {store}: "
-                f"{type(page_info).__name__}. Response preview: {preview!r}"
-            )
-        if (
-            not isinstance(page_info, dict)
-            or page_info.get("current_page") is None
-            or page_info.get("total_pages") is None
-        ):
+        try:
+            page_info = payload["data"]["products"]["page_info"]
+            if page_info["current_page"] is None or page_info["total_pages"] is None:
+                raise KeyError("incomplete page_info")
+        except (TypeError, KeyError, AttributeError) as e:
             raise RetriableAPIError(
                 f"Transient GraphQL payload missing page_info for product_prices for {store}. "
                 f"url={response.request.url}. Response preview: {preview!r}"
-            )
+            ) from e
 
     def get_records(self, context: Optional[dict]) -> Iterable[dict]:
 
