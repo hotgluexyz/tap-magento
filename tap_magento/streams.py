@@ -474,11 +474,10 @@ class PricesStream(MagentoStream):
         """Return a short store_id/store_code label for error messages."""
         store_id = self._active_store_id
         store_code = self._active_store_code
+
         if response is not None and not store_code:
-            try:
-                store_code = response.request.headers.get("store")
-            except Exception:
-                pass
+            store_code = response.request.headers.get("store")
+
         return f"store_id={store_id!r} store_code={store_code!r}"
 
     def product_prices_exception(self, details: dict) -> None:
@@ -535,7 +534,6 @@ class PricesStream(MagentoStream):
         if self.current_visibility in [1, 3]:
             return None
 
-        store = self._active_store_label(response)
         try:
             data = response.json()
             page_info = data["data"]["products"]["page_info"]
@@ -543,6 +541,7 @@ class PricesStream(MagentoStream):
                 return None
             return page_info["current_page"] + 1
         except Exception as e:
+            store = self._active_store_label(response)
             preview = (response.text or "")[:300]
             msg = (
                 f"product_prices failed while reading GraphQL pagination for {store}: {e}. "
@@ -916,6 +915,7 @@ class PricesStream(MagentoStream):
                 f"Response preview: {preview!r}"
             ) from e
 
+        # Magento sometimes returns a JSON string (e.g. `"}"`) with HTTP 200.
         if not isinstance(payload, dict):
             raise RetriableAPIError(
                 f"Unexpected non-object GraphQL JSON for product_prices for {store}. "
@@ -923,10 +923,9 @@ class PricesStream(MagentoStream):
             )
 
         # Explicit GraphQL errors are fatal (permissions, schema), not transient.
-        errors = payload.get("errors")
-        if errors:
+        if payload.get("errors"):
             raise FatalAPIError(
-                f"GraphQL errors in product_prices response for {store}: {errors}. "
+                f"GraphQL errors in product_prices response for {store}: {payload.get('errors')}. "
                 f"Response preview: {preview!r}"
             )
 
