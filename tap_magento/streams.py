@@ -471,6 +471,7 @@ class PricesStream(MagentoStream):
         self._active_store_code = None
 
     def _active_store_label(self, response: Optional[requests.Response] = None) -> str:
+        """Return a short store_id/store_code label for error messages."""
         store_id = self._active_store_id
         store_code = self._active_store_code
         if response is not None and not store_code:
@@ -480,10 +481,12 @@ class PricesStream(MagentoStream):
                 pass
         return f"store_id={store_id!r} store_code={store_code!r}"
 
-    def _give_up_product_prices(self, details: dict) -> None:
-        """Log and raise a clear fatal error after retries are exhausted."""
-        # backoff 1.8 does not pass the exception in details; it is still in
-        # sys.exc_info() because on_giveup runs inside the except block.
+    def product_prices_exception(self, details: dict) -> None:
+        """Backoff on_giveup: log and raise FatalAPIError with store context.
+
+        backoff 1.8 omits the exception from details; it is still available via
+        sys.exc_info() because on_giveup runs inside the except block.
+        """
         exc = details.get("exception") or sys.exc_info()[1]
         store = self._active_store_label(
             getattr(exc, "response", None) if exc is not None else None
@@ -495,7 +498,7 @@ class PricesStream(MagentoStream):
         raise FatalAPIError(msg) from exc
 
     def request_decorator(self, func: Callable) -> Callable:
-        """Retry transient failures, then fail with store context."""
+        """Retry transient request failures, then raise product_prices_exception."""
         return backoff.on_exception(
             backoff.expo,
             (
@@ -508,7 +511,7 @@ class PricesStream(MagentoStream):
             max_tries=12,
             factor=5,
             on_backoff=handle_backoff,
-            on_giveup=self._give_up_product_prices,
+            on_giveup=self.product_prices_exception,
         )(func)
 
     @property
@@ -528,6 +531,7 @@ class PricesStream(MagentoStream):
         return original_url_base.replace("rest", "graphql")
 
     def get_next_page_token(self, response, previous_token):
+        """Return the next GraphQL page, or raise with store context on bad payloads."""
         if self.current_visibility in [1, 3]:
             return None
 
@@ -665,6 +669,7 @@ class PricesStream(MagentoStream):
             return {}
 
     def get_additional_headers_with_context(self, context: {}) -> dict:
+        """Attach Magento store header and remember store for error messages."""
         headers = super().http_headers
         headers["store"] = context["store_code"]
         self._active_store_id = context.get("store_id")
@@ -869,8 +874,23 @@ class PricesStream(MagentoStream):
         }
 
     def validate_response(self, response: requests.Response) -> None:
+        """Validate product_prices responses in two steps.
+
+        1. Parent HTTP/JSON checks, re-raised with store context.
+        2. For visibility 2/4 bulk GraphQL: require a usable page_info object.
+        """
         store = self._active_store_label(response)
         preview = (response.text or "")[:300]
+
+        self._validate_http_status(response, store, preview)
+
+        if self.current_visibility in [2, 4] and response.status_code == 200:
+            self._validate_bulk_graphql_payload(response, store, preview)
+
+    def _validate_http_status(
+        self, response: requests.Response, store: str, preview: str
+    ) -> None:
+        """Run parent validation and annotate failures with store + preview."""
         try:
             super().validate_response(response)
         except Exception as e:
@@ -884,52 +904,61 @@ class PricesStream(MagentoStream):
                 f"Response preview: {preview!r}"
             ) from e
 
-        if self.current_visibility in [2, 4] and response.status_code == 200:
-            try:
-                payload = response.json()
-            except Exception as e:
-                raise RetriableAPIError(
-                    f"Invalid JSON for product_prices GraphQL for {store}: {e}. "
-                    f"Response preview: {preview!r}"
-                ) from e
-            if not isinstance(payload, dict):
-                raise RetriableAPIError(
-                    f"Unexpected non-object GraphQL JSON for product_prices for {store}. "
-                    f"Response preview: {preview!r}"
-                )
-            errors = payload.get("errors")
-            if errors:
-                raise FatalAPIError(
-                    f"GraphQL errors in product_prices response for {store}: {errors}. "
-                    f"Response preview: {preview!r}"
-                )
-            data = payload.get("data")
-            if data is not None and not isinstance(data, dict):
-                raise RetriableAPIError(
-                    f"Unexpected data payload type for product_prices for {store}: "
-                    f"{type(data).__name__}. Response preview: {preview!r}"
-                )
-            products = data.get("products") if isinstance(data, dict) else None
-            if products is not None and not isinstance(products, dict):
-                raise RetriableAPIError(
-                    f"Unexpected products payload type for product_prices for {store}: "
-                    f"{type(products).__name__}. Response preview: {preview!r}"
-                )
-            page_info = products.get("page_info") if isinstance(products, dict) else None
-            if page_info is not None and not isinstance(page_info, dict):
-                raise RetriableAPIError(
-                    f"Unexpected page_info payload type for product_prices for {store}: "
-                    f"{type(page_info).__name__}. Response preview: {preview!r}"
-                )
-            if (
-                not isinstance(page_info, dict)
-                or page_info.get("current_page") is None
-                or page_info.get("total_pages") is None
-            ):
-                raise RetriableAPIError(
-                    f"Transient GraphQL payload missing page_info for product_prices for {store}. "
-                    f"url={response.request.url}. Response preview: {preview!r}"
-                )
+    def _validate_bulk_graphql_payload(
+        self, response: requests.Response, store: str, preview: str
+    ) -> None:
+        """Require a dict GraphQL body with products.page_info for pagination."""
+        try:
+            payload = response.json()
+        except Exception as e:
+            raise RetriableAPIError(
+                f"Invalid JSON for product_prices GraphQL for {store}: {e}. "
+                f"Response preview: {preview!r}"
+            ) from e
+
+        if not isinstance(payload, dict):
+            raise RetriableAPIError(
+                f"Unexpected non-object GraphQL JSON for product_prices for {store}. "
+                f"Response preview: {preview!r}"
+            )
+
+        # Explicit GraphQL errors are fatal (permissions, schema), not transient.
+        errors = payload.get("errors")
+        if errors:
+            raise FatalAPIError(
+                f"GraphQL errors in product_prices response for {store}: {errors}. "
+                f"Response preview: {preview!r}"
+            )
+
+        data = payload.get("data")
+        if data is not None and not isinstance(data, dict):
+            raise RetriableAPIError(
+                f"Unexpected data payload type for product_prices for {store}: "
+                f"{type(data).__name__}. Response preview: {preview!r}"
+            )
+
+        products = data.get("products") if isinstance(data, dict) else None
+        if products is not None and not isinstance(products, dict):
+            raise RetriableAPIError(
+                f"Unexpected products payload type for product_prices for {store}: "
+                f"{type(products).__name__}. Response preview: {preview!r}"
+            )
+
+        page_info = products.get("page_info") if isinstance(products, dict) else None
+        if page_info is not None and not isinstance(page_info, dict):
+            raise RetriableAPIError(
+                f"Unexpected page_info payload type for product_prices for {store}: "
+                f"{type(page_info).__name__}. Response preview: {preview!r}"
+            )
+        if (
+            not isinstance(page_info, dict)
+            or page_info.get("current_page") is None
+            or page_info.get("total_pages") is None
+        ):
+            raise RetriableAPIError(
+                f"Transient GraphQL payload missing page_info for product_prices for {store}. "
+                f"url={response.request.url}. Response preview: {preview!r}"
+            )
 
     def get_records(self, context: Optional[dict]) -> Iterable[dict]:
 

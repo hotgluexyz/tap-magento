@@ -62,7 +62,7 @@ class TestGiveUpHandler:
             raise underlying
         except RetriableAPIError:
             with pytest.raises(FatalAPIError, match="store_id='12'.*store_code='fr'") as exc_info:
-                stream._give_up_product_prices({"tries": 12})
+                stream.product_prices_exception({"tries": 12})
 
         msg = str(exc_info.value)
         assert "product_prices failed after 12 retries" in msg
@@ -207,7 +207,7 @@ class TestRequestDecoratorGiveUp:
             RetriableAPIError,
             max_tries=3,
             interval=0,
-            on_giveup=stream._give_up_product_prices,
+            on_giveup=stream.product_prices_exception,
         )(lambda: (_ for _ in ()).throw(RetriableAPIError("boom")))
 
         with pytest.raises(FatalAPIError) as exc_info:
@@ -234,7 +234,7 @@ class TestRequestDecoratorGiveUp:
                 RetriableAPIError,
                 max_tries=2,
                 interval=0,
-                on_giveup=stream._give_up_product_prices,
+                on_giveup=stream.product_prices_exception,
             )(func)
 
         stream.request_decorator = fast_decorator
