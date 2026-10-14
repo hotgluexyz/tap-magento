@@ -598,7 +598,8 @@ class MagentoStream(RESTStream):
             raise RetriableAPIError(
                 f"Gateway Timeout (504) for path: {self.path}. Request timed out; retrying with backoff."
             )
-        elif response.status_code == 403 or "cf-error-details" in response.text:
+        # Cloudflare 502 is a temporary error, so we should not raise a fatal error but rather retry
+        elif response.status_code == 403 or ("cf-error-details" in response.text and response.status_code != 502):
             resp_text = extract_text_from_html(response.text)
             raise FatalAPIError(resp_text)
         elif response.status_code == 401:
