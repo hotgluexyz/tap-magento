@@ -20,7 +20,7 @@ class MagentoAuthenticator(OAuthAuthenticator):
             allow_redirects=False,
         )
         if response.is_redirect:
-            raise RuntimeError("Magento token endpoint returned a redirect.")
+            raise requests.RequestException("Magento token endpoint returned a redirect.")
         response.raise_for_status()
         return response
 
