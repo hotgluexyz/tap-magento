@@ -18,13 +18,21 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
     )
 
     class Response:
+        is_redirect = False
+
         def raise_for_status(self):
             return None
 
         def json(self):
             return "magento-access-token"
 
-    monkeypatch.setattr("tap_magento.auth.requests.post", lambda *args, **kwargs: Response())
+    post_requests = []
+
+    def post(*args, **kwargs):
+        post_requests.append((args, kwargs))
+        return Response()
+
+    monkeypatch.setattr("tap_magento.auth.requests.post", post)
 
     tap = TapMagento(config=config_path)
 
@@ -32,3 +40,8 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
         "access_token": "magento-access-token"
     }
     assert json.loads(config_path.read_text())["access_token"] == "magento-access-token"
+    assert post_requests[0][1] == {
+        "json": {"username": "admin", "password": "password"},
+        "timeout": 300,
+        "allow_redirects": False,
+    }
