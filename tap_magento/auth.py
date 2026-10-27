@@ -23,6 +23,7 @@ def get_admin_token(session, url_base, config, headers, validate_response):
             headers=headers,
         )
         response.json()
+        response.raise_for_status()
         validate_response(response)
     except (ValueError, requests.RequestException):
         response = session.post(
@@ -38,7 +39,7 @@ class MagentoAuthenticator(OAuthAuthenticator):
     """Fetch Magento admin tokens for the access-token flow."""
 
     def update_access_token_locally(self) -> None:
-        if self._tap._config.get("username"):
+        if self._tap._config.get("username") and self._tap._config.get("password"):
             session = requests.Session()
             for cookie, value in self._tap.config.get("custom_cookies", {}).items():
                 session.cookies[cookie] = value

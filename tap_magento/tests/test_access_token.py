@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from tap_magento.tap import TapMagento
 
 
@@ -94,3 +96,25 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
     assert post_requests[1][0][1:] == (
         "https://store.example.com/rest/V1/integration/admin/token",
     )
+
+
+def test_access_token_support_uses_configured_token_without_password(tmp_path, monkeypatch):
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "store_url": "https://store.example.com",
+                "username": "admin",
+                "access_token": "configured-token",
+            }
+        )
+    )
+
+    monkeypatch.setattr(
+        "tap_magento.auth.requests.Session.post",
+        lambda *args, **kwargs: pytest.fail("should not request a token"),
+    )
+
+    assert TapMagento.fetch_access_token(TapMagento(config=config_path)) == {
+        "access_token": "configured-token"
+    }
