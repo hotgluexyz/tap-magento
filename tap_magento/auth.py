@@ -23,7 +23,10 @@ def get_admin_token(session, url_base, config, headers, validate_response):
             json=payload,
             headers=headers,
             timeout=30,
+            allow_redirects=False,
         )
+        if response.is_redirect:
+            raise FatalAPIError("Magento admin-token endpoint redirected")
         response.json()
         response.raise_for_status()
         validate_response(response)
@@ -33,7 +36,10 @@ def get_admin_token(session, url_base, config, headers, validate_response):
             json=payload,
             headers=headers,
             timeout=30,
+            allow_redirects=False,
         )
+        if response.is_redirect:
+            raise FatalAPIError("Magento admin-token endpoint redirected")
         validate_response(response)
     return response.json()
 

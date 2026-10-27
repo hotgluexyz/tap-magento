@@ -55,6 +55,7 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
         "json": {"username": "admin", "password": "password"},
         "headers": {"Content-Type": "application/json", "User-Agent": "tap-magento/test"},
         "timeout": 30,
+        "allow_redirects": False,
     }
 
 
@@ -71,6 +72,8 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
     )
 
     class HtmlResponse:
+        is_redirect = False
+
         def json(self):
             raise ValueError
 
@@ -101,10 +104,30 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
         "https://store.example.com/rest/V1/integration/admin/token",
     )
     assert post_requests[1][1]["timeout"] == 30
+    assert post_requests[1][1]["allow_redirects"] is False
+
+
+def test_get_admin_token_rejects_redirects():
+    class RedirectResponse:
+        is_redirect = True
+
+    session = requests.Session()
+    session.post = lambda *args, **kwargs: RedirectResponse()
+
+    with pytest.raises(FatalAPIError):
+        get_admin_token(
+            session,
+            "https://store.example.com/rest",
+            {"username": "admin", "password": "password"},
+            {},
+            lambda response: response.raise_for_status(),
+        )
 
 
 def test_get_admin_token_retries_after_response_validation_failure():
     class Response:
+        is_redirect = False
+
         def raise_for_status(self):
             return None
 
@@ -136,11 +159,21 @@ def test_get_admin_token_retries_after_response_validation_failure():
     assert requested_requests == [
         (
             "https://store.example.com/index.php/rest/V1/integration/admin/token",
-            {"json": {"username": "admin", "password": "password"}, "headers": {}, "timeout": 30},
+            {
+                "json": {"username": "admin", "password": "password"},
+                "headers": {},
+                "timeout": 30,
+                "allow_redirects": False,
+            },
         ),
         (
             "https://store.example.com/rest/V1/integration/admin/token",
-            {"json": {"username": "admin", "password": "password"}, "headers": {}, "timeout": 30},
+            {
+                "json": {"username": "admin", "password": "password"},
+                "headers": {},
+                "timeout": 30,
+                "allow_redirects": False,
+            },
         ),
     ]
 
