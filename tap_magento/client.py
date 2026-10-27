@@ -113,7 +113,7 @@ class MagentoStream(RESTStream):
                 get_magento_url_base(self.config["store_url"]),
                 self.config,
                 self.http_headers,
-                lambda response: response.raise_for_status(),
+                lambda response: MagentoStream.validate_response(self, response),
             )
 
         return self.access_token
