@@ -10,6 +10,7 @@ from simplejson.scanner import JSONDecodeError
 from hotglue_singer_sdk.streams import RESTStream
 from hotglue_singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from hotglue_singer_sdk.authenticators import BearerTokenAuthenticator
+from tap_magento.auth import get_admin_token, get_magento_url_base
 from hotglue_singer_sdk.helpers.jsonpath import extract_jsonpath
 
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
@@ -107,29 +108,13 @@ class MagentoStream(RESTStream):
 
     def get_token(self):
         if not self.access_token:
-            s = self.requests_session
-            payload = {
-                "Content-Type": "application/json",
-                "username": self.config.get("username"),
-                "password": self.config.get("password"),
-            }
-            try:
-                login = s.post(
-                    f"{self.config['store_url']}/index.php/rest/V1/integration/admin/token",
-                    json=payload,
-                )
-                login.json()
-                # login.raise_for_status()
-                self.validate_response(login)
-            except:
-                login = s.post(
-                    f"{self.config['store_url']}/rest/V1/integration/admin/token",
-                    json=payload,
-                )
-            # login.raise_for_status()
-            self.validate_response(login)
-
-            self.access_token = login.json()
+            self.access_token = get_admin_token(
+                self.requests_session,
+                get_magento_url_base(self.config["store_url"]),
+                self.config,
+                self.http_headers,
+                lambda response: MagentoStream.validate_response(self, response),
+            )
 
         return self.access_token
 
@@ -141,10 +126,14 @@ class MagentoStream(RESTStream):
         if self.config.get("use_oauth"):
             return None
 
-        if self.config.get("username") and self.config.get("password") is not None:
+        if (
+            not self.config.get("access_token")
+            and self.config.get("username")
+            and self.config.get("password") is not None
+        ):
             token = self.get_token()
         else:
-            token = self.config.get("oauth_token", self.config.get("access_token"))
+            token = self.config.get("access_token") or self.config.get("oauth_token")
         return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
     def get_oauth1_session(self) -> requests.Session:
