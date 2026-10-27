@@ -22,6 +22,7 @@ def get_admin_token(session, url_base, config, headers, validate_response):
             f"{url_base.replace('/rest', '/index.php/rest')}/V1/integration/admin/token",
             json=payload,
             headers=headers,
+            timeout=30,
         )
         response.json()
         response.raise_for_status()
@@ -31,6 +32,7 @@ def get_admin_token(session, url_base, config, headers, validate_response):
             f"{url_base}/V1/integration/admin/token",
             json=payload,
             headers=headers,
+            timeout=30,
         )
         validate_response(response)
     return response.json()

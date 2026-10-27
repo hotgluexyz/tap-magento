@@ -54,6 +54,7 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
     assert post_requests[0][1] == {
         "json": {"username": "admin", "password": "password"},
         "headers": {"Content-Type": "application/json", "User-Agent": "tap-magento/test"},
+        "timeout": 30,
     }
 
 
@@ -99,6 +100,7 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
     assert post_requests[1][0][1:] == (
         "https://store.example.com/rest/V1/integration/admin/token",
     )
+    assert post_requests[1][1]["timeout"] == 30
 
 
 def test_get_admin_token_retries_after_response_validation_failure():
@@ -110,10 +112,10 @@ def test_get_admin_token_retries_after_response_validation_failure():
             return "magento-access-token"
 
     session = requests.Session()
-    requested_urls = []
+    requested_requests = []
 
     def post(url, **kwargs):
-        requested_urls.append(url)
+        requested_requests.append((url, kwargs))
         return Response()
 
     session.post = post
@@ -131,9 +133,15 @@ def test_get_admin_token_retries_after_response_validation_failure():
         {},
         validate_response,
     ) == "magento-access-token"
-    assert requested_urls == [
-        "https://store.example.com/index.php/rest/V1/integration/admin/token",
-        "https://store.example.com/rest/V1/integration/admin/token",
+    assert requested_requests == [
+        (
+            "https://store.example.com/index.php/rest/V1/integration/admin/token",
+            {"json": {"username": "admin", "password": "password"}, "headers": {}, "timeout": 30},
+        ),
+        (
+            "https://store.example.com/rest/V1/integration/admin/token",
+            {"json": {"username": "admin", "password": "password"}, "headers": {}, "timeout": 30},
+        ),
     ]
 
 
