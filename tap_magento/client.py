@@ -10,7 +10,7 @@ from simplejson.scanner import JSONDecodeError
 from hotglue_singer_sdk.streams import RESTStream
 from hotglue_singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from hotglue_singer_sdk.authenticators import BearerTokenAuthenticator
-from tap_magento.auth import get_admin_token
+from tap_magento.auth import get_admin_token, get_magento_url_base
 from hotglue_singer_sdk.helpers.jsonpath import extract_jsonpath
 
 from oauthlib.oauth1 import SIGNATURE_HMAC_SHA256
@@ -110,10 +110,10 @@ class MagentoStream(RESTStream):
         if not self.access_token:
             self.access_token = get_admin_token(
                 self.requests_session,
-                self.url_base,
+                get_magento_url_base(self.config["store_url"]),
                 self.config,
                 self.http_headers,
-                self.validate_response,
+                lambda response: response.raise_for_status(),
             )
 
         return self.access_token
@@ -133,7 +133,7 @@ class MagentoStream(RESTStream):
         ):
             token = self.get_token()
         else:
-            token = self.config.get("oauth_token", self.config.get("access_token"))
+            token = self.config.get("access_token") or self.config.get("oauth_token")
         return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
     def get_oauth1_session(self) -> requests.Session:
