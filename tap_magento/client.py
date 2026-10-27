@@ -126,7 +126,11 @@ class MagentoStream(RESTStream):
         if self.config.get("use_oauth"):
             return None
 
-        if self.config.get("username") and self.config.get("password") is not None:
+        if (
+            not self.config.get("access_token")
+            and self.config.get("username")
+            and self.config.get("password") is not None
+        ):
             token = self.get_token()
         else:
             token = self.config.get("oauth_token", self.config.get("access_token"))
