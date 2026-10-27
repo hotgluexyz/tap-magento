@@ -110,7 +110,13 @@ def test_get_admin_token_retries_after_response_validation_failure():
             return "magento-access-token"
 
     session = requests.Session()
-    session.post = lambda *args, **kwargs: Response()
+    requested_urls = []
+
+    def post(url, **kwargs):
+        requested_urls.append(url)
+        return Response()
+
+    session.post = post
     validations = iter([FatalAPIError("blocked"), None])
 
     def validate_response(_response):
@@ -125,6 +131,10 @@ def test_get_admin_token_retries_after_response_validation_failure():
         {},
         validate_response,
     ) == "magento-access-token"
+    assert requested_urls == [
+        "https://store.example.com/index.php/rest/V1/integration/admin/token",
+        "https://store.example.com/rest/V1/integration/admin/token",
+    ]
 
 
 def test_access_token_support_uses_configured_token_without_password(tmp_path, monkeypatch):
