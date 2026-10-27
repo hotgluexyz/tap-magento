@@ -3,7 +3,10 @@
 import json
 
 import pytest
+import requests
+from hotglue_singer_sdk.exceptions import FatalAPIError
 
+from tap_magento.auth import get_admin_token
 from tap_magento.tap import TapMagento
 
 
@@ -96,6 +99,32 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
     assert post_requests[1][0][1:] == (
         "https://store.example.com/rest/V1/integration/admin/token",
     )
+
+
+def test_get_admin_token_retries_after_response_validation_failure():
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return "magento-access-token"
+
+    session = requests.Session()
+    session.post = lambda *args, **kwargs: Response()
+    validations = iter([FatalAPIError("blocked"), None])
+
+    def validate_response(_response):
+        result = next(validations)
+        if result:
+            raise result
+
+    assert get_admin_token(
+        session,
+        "https://store.example.com/rest",
+        {"username": "admin", "password": "password"},
+        {},
+        validate_response,
+    ) == "magento-access-token"
 
 
 def test_access_token_support_uses_configured_token_without_password(tmp_path, monkeypatch):

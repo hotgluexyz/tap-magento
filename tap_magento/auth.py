@@ -4,6 +4,7 @@ import json
 
 import requests
 from hotglue_singer_sdk.authenticators import OAuthAuthenticator
+from hotglue_singer_sdk.exceptions import FatalAPIError
 
 
 def get_magento_url_base(store_url):
@@ -25,7 +26,7 @@ def get_admin_token(session, url_base, config, headers, validate_response):
         response.json()
         response.raise_for_status()
         validate_response(response)
-    except (ValueError, requests.RequestException):
+    except (FatalAPIError, ValueError, requests.RequestException):
         response = session.post(
             f"{url_base}/V1/integration/admin/token",
             json=payload,
