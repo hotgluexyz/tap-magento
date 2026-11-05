@@ -7,6 +7,7 @@ import requests
 from hotglue_singer_sdk.exceptions import FatalAPIError
 
 from tap_magento.auth import get_admin_token
+from tap_magento.client import MagentoStream
 from tap_magento.tap import TapMagento
 
 
@@ -198,3 +199,30 @@ def test_access_token_support_uses_configured_token_without_password(tmp_path, m
     assert TapMagento.fetch_access_token(TapMagento(config=config_path)) == {
         "access_token": "configured-token"
     }
+
+
+def test_stream_authenticator_refreshes_admin_token_when_credentials_are_available(monkeypatch):
+    stream = MagentoStream.__new__(MagentoStream)
+    stream._config = {
+        "store_url": "https://store.example.com",
+        "username": "admin",
+        "password": "password",
+        "access_token": "previous-token",
+    }
+    stream._requests_session = requests.Session()
+    stream._http_headers = {}
+    stream.access_token = None
+    requested_tokens = []
+
+    def get_token(*_args):
+        requested_tokens.append(True)
+        return "fresh-token"
+
+    monkeypatch.setattr("tap_magento.client.get_admin_token", get_token)
+    monkeypatch.setattr(
+        "tap_magento.client.BearerTokenAuthenticator.create_for_stream",
+        lambda _stream, token: token,
+    )
+
+    assert stream.authenticator == "fresh-token"
+    assert requested_tokens == [True]
