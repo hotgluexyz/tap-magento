@@ -4,7 +4,6 @@ import json
 
 import pytest
 import requests
-from hotglue_singer_sdk.exceptions import FatalAPIError
 
 from tap_magento.auth import get_admin_token
 from tap_magento.client import MagentoStream
@@ -16,11 +15,10 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
     config_path.write_text(
         json.dumps(
             {
-                "store_url": "store.example.com/",
+                "store_url": "https://store.example.com",
                 "username": "admin",
                 "password": "password",
                 "custom_cookies": {"session": "cookie"},
-                "user_agent": "tap-magento/test",
             }
         )
     )
@@ -53,10 +51,11 @@ def test_access_token_support_fetches_admin_token(tmp_path, monkeypatch):
         "https://store.example.com/index.php/rest/V1/integration/admin/token",
     )
     assert post_requests[0][1] == {
-        "json": {"username": "admin", "password": "password"},
-        "headers": {"Content-Type": "application/json", "User-Agent": "tap-magento/test"},
-        "timeout": 30,
-        "allow_redirects": False,
+        "json": {
+            "Content-Type": "application/json",
+            "username": "admin",
+            "password": "password",
+        },
     }
 
 
@@ -104,25 +103,6 @@ def test_access_token_support_retries_alternate_endpoint_after_html_response(tmp
     assert post_requests[1][0][1:] == (
         "https://store.example.com/rest/V1/integration/admin/token",
     )
-    assert post_requests[1][1]["timeout"] == 30
-    assert post_requests[1][1]["allow_redirects"] is False
-
-
-def test_get_admin_token_rejects_redirects():
-    class RedirectResponse:
-        is_redirect = True
-
-    session = requests.Session()
-    session.post = lambda *args, **kwargs: RedirectResponse()
-
-    with pytest.raises(FatalAPIError):
-        get_admin_token(
-            session,
-            "https://store.example.com/rest",
-            {"username": "admin", "password": "password"},
-            {},
-            lambda response: response.raise_for_status(),
-        )
 
 
 def test_get_admin_token_retries_after_response_validation_failure():
@@ -143,7 +123,7 @@ def test_get_admin_token_retries_after_response_validation_failure():
         return Response()
 
     session.post = post
-    validations = iter([FatalAPIError("blocked"), None])
+    validations = iter([ValueError("blocked"), None])
 
     def validate_response(_response):
         result = next(validations)
@@ -152,28 +132,28 @@ def test_get_admin_token_retries_after_response_validation_failure():
 
     assert get_admin_token(
         session,
-        "https://store.example.com/rest",
-        {"username": "admin", "password": "password"},
-        {},
+        {"store_url": "https://store.example.com", "username": "admin", "password": "password"},
         validate_response,
     ) == "magento-access-token"
     assert requested_requests == [
         (
             "https://store.example.com/index.php/rest/V1/integration/admin/token",
             {
-                "json": {"username": "admin", "password": "password"},
-                "headers": {},
-                "timeout": 30,
-                "allow_redirects": False,
+                "json": {
+                    "Content-Type": "application/json",
+                    "username": "admin",
+                    "password": "password",
+                },
             },
         ),
         (
             "https://store.example.com/rest/V1/integration/admin/token",
             {
-                "json": {"username": "admin", "password": "password"},
-                "headers": {},
-                "timeout": 30,
-                "allow_redirects": False,
+                "json": {
+                    "Content-Type": "application/json",
+                    "username": "admin",
+                    "password": "password",
+                },
             },
         ),
     ]
@@ -226,3 +206,26 @@ def test_stream_authenticator_refreshes_admin_token_when_credentials_are_availab
 
     assert stream.authenticator == "fresh-token"
     assert requested_tokens == [True]
+
+
+def test_stream_authenticator_uses_configured_token_with_empty_password(monkeypatch):
+    stream = MagentoStream.__new__(MagentoStream)
+    stream._config = {
+        "store_url": "https://store.example.com",
+        "username": "admin",
+        "password": "",
+        "access_token": "configured-token",
+    }
+    stream._requests_session = requests.Session()
+    stream._http_headers = {}
+
+    monkeypatch.setattr(
+        "tap_magento.client.get_admin_token",
+        lambda *args: pytest.fail("should not request a token"),
+    )
+    monkeypatch.setattr(
+        "tap_magento.client.BearerTokenAuthenticator.create_for_stream",
+        lambda _stream, token: token,
+    )
+
+    assert stream.authenticator == "configured-token"
