@@ -1,0 +1,109 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/V1/store/storeConfigs?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=1
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 04 Nov 2026 20:41:36 GMT
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - no-store
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Server:
+      - Apache/2.4.68 (Debian)
+      Connection:
+      - Keep-Alive
+      Keep-Alive:
+      - timeout=5, max=100
+      X-UA-Compatible:
+      - IE=edge
+    body:
+      string: !!binary |
+        W3siaWQiOiAxLCAiY29kZSI6ICJkZWZhdWx0IiwgIndlYnNpdGVfaWQiOiA2MTI4LCAibG9jYWxl
+        IjogIi1GYWxsYmFjay1zY3J1YmJlZC1CeWd3RyIsICJiYXNlX2N1cnJlbmN5X2NvZGUiOiAiLUZh
+        bGxiYWNrLXNjcnViYmVkLUR5SyIsICJkZWZhdWx0X2Rpc3BsYXlfY3VycmVuY3lfY29kZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQtRHlLIiwgInRpbWV6b25lIjogIi1GYWxsYmFjay1zY3J1YmJlZC1w
+        UEQiLCAid2VpZ2h0X3VuaXQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWhYRSIsICJiYXNlX3VybCI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtc0tzcGdsbW9VcXNxWG5YWGptbUpOcSIsICJiYXNlX2xpbmtf
+        dXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1zS3NwZ2xtb1Vxc3FYblhYam1tSk5xIiwgImJhc2Vf
+        c3RhdGljX3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtYlV3ZnBTUVNueUtmWUxwUnJreXhBaG90
+        a1d4ZXRoYmxLUUpibHpIT3JKRlhmQ0EiLCAiYmFzZV9tZWRpYV91cmwiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLW9Zd2daUVZVUmVJZEFabXdUaUVPVE14WnNScVciLCAic2VjdXJlX2Jhc2VfdXJsIjog
+        Ii1GYWxsYmFjay1zY3J1YmJlZC1zS3NwZ2xtb1Vxc3FYblhYam1tSk5xIiwgInNlY3VyZV9iYXNl
+        X2xpbmtfdXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1zS3NwZ2xtb1Vxc3FYblhYam1tSk5xIiwg
+        InNlY3VyZV9iYXNlX3N0YXRpY191cmwiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWJVd2ZwU1FTbnlL
+        ZllMcFJya3l4QWhvdGtXeGV0aGJsS1FKYmx6SE9ySkZYZkNBIiwgInNlY3VyZV9iYXNlX21lZGlh
+        X3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtb1l3Z1pRVlVSZUlkQVptd1RpRU9UTXhac1JxVyJ9
+        XQ==
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/default/V1/inventory/source-items?searchCriteria%5BpageSize%5D=2000&searchCriteria%5BcurrentPage%5D=1
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 04 Nov 2026 20:41:36 GMT
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - no-store
+      Content-Type:
+      - application/json; charset=utf-8
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Server:
+      - Apache/2.4.68 (Debian)
+      Connection:
+      - Keep-Alive
+      Keep-Alive:
+      - timeout=5, max=100
+      X-UA-Compatible:
+      - IE=edge
+    body:
+      string: !!binary |
+        eyJpdGVtcyI6IFt7InNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtRnNSWGdLVHBFcnd2eGlhIiwg
+        InNvdXJjZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC16S0ZxZ2txIiwgInF1YW50aXR5Ijog
+        MzE4NSwgInN0YXR1cyI6IDYxMjh9LCB7InNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtZUpxS3Jp
+        R0ZOQnNXT2tiIiwgInNvdXJjZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC16S0ZxZ2txIiwg
+        InF1YW50aXR5IjogMzE4NSwgInN0YXR1cyI6IDYxMjh9LCB7InNrdSI6ICItRmFsbGJhY2stc2Ny
+        dWJiZWQteEpyaEhaSXZzeGNzWkdmIiwgInNvdXJjZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJl
+        ZC16S0ZxZ2txIiwgInF1YW50aXR5IjogMzE4NSwgInN0YXR1cyI6IDYxMjh9XSwgInNlYXJjaF9j
+        cml0ZXJpYSI6IHsiZmlsdGVyX2dyb3VwcyI6IFtdLCAicGFnZV9zaXplIjogMzEyNCwgImN1cnJl
+        bnRfcGFnZSI6IDF9LCAidG90YWxfY291bnQiOiAzfQ==
+version: 1

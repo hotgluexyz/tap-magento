@@ -1,0 +1,3 @@
+{"type": "SCHEMA", "stream": "stores", "schema": {"properties": {"id": {"type": ["number", "null"]}, "website_id": {"type": ["number", "null"]}}, "type": "object"}, "key_properties": ["id"]}
+{"type": "RECORD", "stream": "stores", "record": {"id": 1, "website_id": 3623}, "time_extracted": "2026-11-05T18:45:05.748536Z"}
+{"type": "STATE", "value": {"bookmarks": {"stores": {}}}}

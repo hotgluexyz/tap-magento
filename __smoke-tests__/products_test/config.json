@@ -1,0 +1,7 @@
+{
+    "store_url": "http://127.0.0.1:8085",
+    "access_token": "eyJ***",
+    "start_date": "2020-01-01T00:00:00Z",
+    "store_id": "1",
+    "page_size": 2
+}

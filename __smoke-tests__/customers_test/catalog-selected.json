@@ -1,0 +1,559 @@
+{
+  "streams": [
+    {
+      "tap_stream_id": "customers",
+      "replication_key": "updated_at",
+      "replication_method": "INCREMENTAL",
+      "key_properties": [
+        "id"
+      ],
+      "schema": {
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "group_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "default_billing": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "default_shipping": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_in": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dob": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "firstname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "middlename": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "prefix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "suffix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "store_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "taxvat": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "disable_auto_group_change": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "addresses": {
+            "items": {
+              "properties": {
+                "id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "customer_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "region": {
+                  "properties": {},
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "region_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "country_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "street": {
+                  "items": {
+                    "type": [
+                      "string"
+                    ]
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "company": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "telephone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "fax": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "postcode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "city": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "firstname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lastname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "middlename": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "prefix": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "suffix": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "vat_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "default_shipping": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "default_billing": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "extension_attributes": {
+                  "properties": {},
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "custom_attributes": {
+                  "items": {
+                    "properties": {},
+                    "type": "object"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "extension_attributes": {
+            "properties": {
+              "company_attributes": {
+                "properties": {},
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "is_subscribed": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "assistance_allowed": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "custom_attributes": {
+            "items": {
+              "properties": {
+                "attribute_code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "stream": "customers",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "id"
+          ],
+          "metadata": {
+            "inclusion": "automatic"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "group_id"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "default_billing"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "default_shipping"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "confirmation"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "created_at"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "updated_at"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "created_in"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "dob"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "email"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "firstname"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "lastname"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "middlename"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "prefix"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "suffix"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "gender"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "store_id"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "taxvat"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "website_id"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "disable_auto_group_change"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "addresses"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "extension_attributes"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "custom_attributes"
+          ],
+          "metadata": {
+            "inclusion": "available"
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "table-key-properties": [
+              "id"
+            ],
+            "valid-replication-keys": [
+              "updated_at"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

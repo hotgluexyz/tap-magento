@@ -138,3 +138,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .vscode
+
+# Smoke-test replay output and local scrub audits
+__smoke-tests__/**/test_runtime/
+__smoke-tests__/unsanitized_*_test/
