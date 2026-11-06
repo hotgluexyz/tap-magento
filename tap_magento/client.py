@@ -127,7 +127,7 @@ class MagentoStream(RESTStream):
         if self.config.get("username") and self.config.get("password"):
             token = self.get_token()
         else:
-            token = self.config.get("access_token") or self.config.get("oauth_token")
+            token = self.config.get("oauth_token", self.config.get("access_token"))
         return BearerTokenAuthenticator.create_for_stream(self, token=token)
 
     def get_oauth1_session(self) -> requests.Session:
