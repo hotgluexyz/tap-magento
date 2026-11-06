@@ -5,6 +5,7 @@ from typing import List
 from hotglue_singer_sdk import Tap, Stream
 from hotglue_singer_sdk import typing as th  # JSON schema typing helpers
 
+from tap_magento.auth import MagentoAuthenticator
 from tap_magento.streams import (
     OrdersStream,
     ProductsStream,
@@ -84,6 +85,10 @@ class TapMagento(Tap):
             description="Optional delay in seconds between page requests to avoid overloading the source platform. Defaults to 0 (no throttling).",
         ),
     ).to_dict()
+
+    @classmethod
+    def access_token_support(cls, connector=None):
+        return MagentoAuthenticator, None
 
     def discover_streams(self) -> List[Stream]:
         """Return a list of discovered streams."""
