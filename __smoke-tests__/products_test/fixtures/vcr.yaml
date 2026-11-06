@@ -1,0 +1,221 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/V1/store/storeConfigs?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Transfer-Encoding:
+      - chunked
+      Server:
+      - Apache/2.4.68 (Debian)
+      Keep-Alive:
+      - timeout=5, max=100
+      X-UA-Compatible:
+      - IE=edge
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 04 Nov 2026 20:40:30 GMT
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+    body:
+      string: !!binary |
+        W3siaWQiOiAxLCAiY29kZSI6ICJkZWZhdWx0IiwgIndlYnNpdGVfaWQiOiA2NTM5LCAibG9jYWxl
+        IjogIi1GYWxsYmFjay1zY3J1YmJlZC1WVm1HVyIsICJiYXNlX2N1cnJlbmN5X2NvZGUiOiAiLUZh
+        bGxiYWNrLXNjcnViYmVkLWJPVSIsICJkZWZhdWx0X2Rpc3BsYXlfY3VycmVuY3lfY29kZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQtYk9VIiwgInRpbWV6b25lIjogIi1GYWxsYmFjay1zY3J1YmJlZC1u
+        RlAiLCAid2VpZ2h0X3VuaXQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLVZIbSIsICJiYXNlX3VybCI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtbWJkR296bm55VGFZRkhFT3BaVkZQWiIsICJiYXNlX2xpbmtf
+        dXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1tYmRHb3pubnlUYVlGSEVPcFpWRlBaIiwgImJhc2Vf
+        c3RhdGljX3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtSXpuSFdHRkZRbm5BeWFPVWJIc2FEcGdN
+        TnZjTWtzb3FscWtqVWltc0JPc2pOdHciLCAiYmFzZV9tZWRpYV91cmwiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLWhqa1FhSFZueFRmbFVmcEpJRm1aRmxQSE1EaUkiLCAic2VjdXJlX2Jhc2VfdXJsIjog
+        Ii1GYWxsYmFjay1zY3J1YmJlZC1tYmRHb3pubnlUYVlGSEVPcFpWRlBaIiwgInNlY3VyZV9iYXNl
+        X2xpbmtfdXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1tYmRHb3pubnlUYVlGSEVPcFpWRlBaIiwg
+        InNlY3VyZV9iYXNlX3N0YXRpY191cmwiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUl6bkhXR0ZGUW5u
+        QXlhT1ViSHNhRHBnTU52Y01rc29xbHFralVpbXNCT3NqTnR3IiwgInNlY3VyZV9iYXNlX21lZGlh
+        X3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtaGprUWFIVm54VGZsVWZwSklGbVpGbFBITURpSSJ9
+        XQ==
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/default/V1/products?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=1&searchCriteria%5BsortOrders%5D%5B0%5D%5Bfield%5D=updated_at&searchCriteria%5BsortOrders%5D%5B0%5D%5Bdirection%5D=ASC&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=updated_at&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=2020-01-01%2B00%3A00%3A00&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=gt&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Transfer-Encoding:
+      - chunked
+      Server:
+      - Apache/2.4.68 (Debian)
+      Keep-Alive:
+      - timeout=5, max=100
+      X-UA-Compatible:
+      - IE=edge
+      Content-Type:
+      - application/json; charset=utf-8
+      Pragma:
+      - no-cache
+      Date:
+      - Wed, 04 Nov 2026 20:40:30 GMT
+      Expires:
+      - Thu, 19 Nov 1981 08:52:00 GMT
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+    body:
+      string: !!binary |
+        eyJpdGVtcyI6IFt7ImlkIjogMSwgInNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtelBac2RIS29v
+        dGFzek1mIiwgIm5hbWUiOiAiRmFrZS1BbmRyZXcgRnJlbmNoIiwgImF0dHJpYnV0ZV9zZXRfaWQi
+        OiAyNjgzLCAicHJpY2UiOiA4MjEsICJzdGF0dXMiOiA2NTM5LCAidmlzaWJpbGl0eSI6IDQsICJ0
+        eXBlX2lkIjogIi1GYWxsYmFjay1zY3J1YmJlZC1Wa2dQbWkiLCAiY3JlYXRlZF9hdCI6ICIyMDA3
+        LTEyLTA5IDE1OjIyOjIwIiwgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMS0wNCAyMDozNzoyOCIsICJ3
+        ZWlnaHQiOiA2NTM5LCAiZXh0ZW5zaW9uX2F0dHJpYnV0ZXMiOiB7IndlYnNpdGVfaWRzIjogWzY1
+        MzldfSwgInByb2R1Y3RfbGlua3MiOiBbXSwgIm9wdGlvbnMiOiBbXSwgIm1lZGlhX2dhbGxlcnlf
+        ZW50cmllcyI6IFtdLCAidGllcl9wcmljZXMiOiBbXSwgImN1c3RvbV9hdHRyaWJ1dGVzIjogW3si
+        YXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWhIT3BycHdacUFlWVJ3S0lGIiwg
+        InZhbHVlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1aZ3B0cXZSRExjIn0sIHsiYXR0cmlidXRlX2Nv
+        ZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLU1sUXVsTWoiLCAidmFsdWUiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLXpQWnNkSEtvb3Rhc3pNZiJ9LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1z
+        Y3J1YmJlZC1ublRjTklOUFFUTHhIU1hLdUdpQmN5bmN6U0lCbnoiLCAidmFsdWUiOiAiMjg4MSJ9
+        LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1CeHdtemxXRlJPSnFNS2tw
+        IiwgInZhbHVlIjogIjI4ODEifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJi
+        ZWQtQ0VJdW5TTGp0dmgiLCAidmFsdWUiOiAiMjg4MSJ9LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1G
+        YWxsYmFjay1zY3J1YmJlZC1rT2pwek9pV1NLd00iLCAidmFsdWUiOiAiMjA4MiJ9LCB7ImF0dHJp
+        YnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1zdEprY2xwRmJIUVIiLCAidmFsdWUiOiBb
+        XX1dfSwgeyJpZCI6IDMsICJza3UiOiAiLUZhbGxiYWNrLXNjcnViYmVkLXdMS2tKVlpWWlJBZmFB
+        SCIsICJuYW1lIjogIkZha2UtTWFydGluIEJpc2hvcCIsICJhdHRyaWJ1dGVfc2V0X2lkIjogMjY4
+        MywgInByaWNlIjogNjA4MSwgInN0YXR1cyI6IDY1MzksICJ2aXNpYmlsaXR5IjogNCwgInR5cGVf
+        aWQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLVZrZ1BtaSIsICJjcmVhdGVkX2F0IjogIjIwMjItMDYt
+        MzAgMjM6Mzg6NDAiLCAidXBkYXRlZF9hdCI6ICIyMDI2LTExLTA0IDIwOjM3OjI5IiwgIndlaWdo
+        dCI6IDY1MzksICJleHRlbnNpb25fYXR0cmlidXRlcyI6IHsid2Vic2l0ZV9pZHMiOiBbNjUzOV19
+        LCAicHJvZHVjdF9saW5rcyI6IFtdLCAib3B0aW9ucyI6IFtdLCAibWVkaWFfZ2FsbGVyeV9lbnRy
+        aWVzIjogW10sICJ0aWVyX3ByaWNlcyI6IFtdLCAiY3VzdG9tX2F0dHJpYnV0ZXMiOiBbeyJhdHRy
+        aWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtaEhPcHJwd1pxQWVZUndLSUYiLCAidmFs
+        dWUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLVpncHRxdlJETGMifSwgeyJhdHRyaWJ1dGVfY29kZSI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtTWxRdWxNaiIsICJ2YWx1ZSI6ICItRmFsbGJhY2stc2NydWJi
+        ZWQtd0xLa0pWWlZaUkFmYUFIIn0sIHsiYXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnVi
+        YmVkLW5uVGNOSU5QUVRMeEhTWEt1R2lCY3luY3pTSUJueiIsICJ2YWx1ZSI6ICIyODgxIn0sIHsi
+        YXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUJ4d216bFdGUk9KcU1La3AiLCAi
+        dmFsdWUiOiAiMjg4MSJ9LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1D
+        RUl1blNManR2aCIsICJ2YWx1ZSI6ICIyODgxIn0sIHsiYXR0cmlidXRlX2NvZGUiOiAiLUZhbGxi
+        YWNrLXNjcnViYmVkLWtPanB6T2lXU0t3TSIsICJ2YWx1ZSI6ICIyMDgyIn0sIHsiYXR0cmlidXRl
+        X2NvZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLXN0SmtjbHBGYkhRUiIsICJ2YWx1ZSI6IFtdfV19
+        XSwgInNlYXJjaF9jcml0ZXJpYSI6IHsiZmlsdGVyX2dyb3VwcyI6IFt7ImZpbHRlcnMiOiBbeyJm
+        aWVsZCI6ICItRmFsbGJhY2stc2NydWJiZWQtWHVjWlVVZ2JFeCIsICJ2YWx1ZSI6ICItRmFsbGJh
+        Y2stc2NydWJiZWQtUG9UaFdRQVFIbWZSUEFGSEdyZCIsICJjb25kaXRpb25fdHlwZSI6ICItRmFs
+        bGJhY2stc2NydWJiZWQtaloifV19LCB7ImZpbHRlcnMiOiBbeyJmaWVsZCI6ICItRmFsbGJhY2st
+        c2NydWJiZWQtck9wQnRFbVIiLCAidmFsdWUiOiAiMTIxNiIsICJjb25kaXRpb25fdHlwZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQtVlUifV19XSwgInNvcnRfb3JkZXJzIjogW3siZmllbGQiOiAiLUZh
+        bGxiYWNrLXNjcnViYmVkLVh1Y1pVVWdiRXgiLCAiZGlyZWN0aW9uIjogIi1GYWxsYmFjay1zY3J1
+        YmJlZC1UWlAifV0sICJwYWdlX3NpemUiOiA5NTg4LCAiY3VycmVudF9wYWdlIjogMX0sICJ0b3Rh
+        bF9jb3VudCI6IDN9
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/default/V1/products?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=2&searchCriteria%5BsortOrders%5D%5B0%5D%5Bfield%5D=updated_at&searchCriteria%5BsortOrders%5D%5B0%5D%5Bdirection%5D=ASC&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=updated_at&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=2020-01-01%2B00%3A00%3A00&searchCriteria%5BfilterGroups%5D%5B0%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=gt&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Transfer-Encoding:
+      - chunked
+      Server:
+      - Apache/2.4.68 (Debian)
+      Keep-Alive:
+      - timeout=5, max=100
+      X-UA-Compatible:
+      - IE=edge
+      Content-Type:
+      - application/json; charset=utf-8
+      Pragma:
+      - no-cache
+      Date:
+      - Wed, 04 Nov 2026 20:40:30 GMT
+      Expires:
+      - Thu, 19 Nov 1981 08:52:00 GMT
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+    body:
+      string: !!binary |
+        eyJpdGVtcyI6IFt7ImlkIjogMiwgInNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtUGlBaVVKRlVV
+        aWx4a0lXIiwgIm5hbWUiOiAiRmFrZS1KaW0gUm9kcmlndWV6IiwgImF0dHJpYnV0ZV9zZXRfaWQi
+        OiAyNjgzLCAicHJpY2UiOiA4MTA2LCAic3RhdHVzIjogNjUzOSwgInZpc2liaWxpdHkiOiA0LCAi
+        dHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtVmtnUG1pIiwgImNyZWF0ZWRfYXQiOiAiMjAy
+        Mi0wNi0zMCAyMzozODo0MCIsICJ1cGRhdGVkX2F0IjogIjIwMjYtMTEtMDQgMjA6Mzc6MjkiLCAi
+        d2VpZ2h0IjogNjUzOSwgImV4dGVuc2lvbl9hdHRyaWJ1dGVzIjogeyJ3ZWJzaXRlX2lkcyI6IFs2
+        NTM5XX0sICJwcm9kdWN0X2xpbmtzIjogW10sICJvcHRpb25zIjogW10sICJtZWRpYV9nYWxsZXJ5
+        X2VudHJpZXMiOiBbXSwgInRpZXJfcHJpY2VzIjogW10sICJjdXN0b21fYXR0cmlidXRlcyI6IFt7
+        ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1oSE9wcnB3WnFBZVlSd0tJRiIs
+        ICJ2YWx1ZSI6ICItRmFsbGJhY2stc2NydWJiZWQtWmdwdHF2UkRMYyJ9LCB7ImF0dHJpYnV0ZV9j
+        b2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1NbFF1bE1qIiwgInZhbHVlIjogIi1GYWxsYmFjay1z
+        Y3J1YmJlZC1QaUFpVUpGVVVpbHhrSVcifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2st
+        c2NydWJiZWQtbm5UY05JTlBRVEx4SFNYS3VHaUJjeW5jelNJQm56IiwgInZhbHVlIjogIjI4ODEi
+        fSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtQnh3bXpsV0ZST0pxTUtr
+        cCIsICJ2YWx1ZSI6ICIyODgxIn0sIHsiYXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnVi
+        YmVkLUNFSXVuU0xqdHZoIiwgInZhbHVlIjogIjI4ODEifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQta09qcHpPaVdTS3dNIiwgInZhbHVlIjogIjIwODIifSwgeyJhdHRy
+        aWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtc3RKa2NscEZiSFFSIiwgInZhbHVlIjog
+        W119XX1dLCAic2VhcmNoX2NyaXRlcmlhIjogeyJmaWx0ZXJfZ3JvdXBzIjogW3siZmlsdGVycyI6
+        IFt7ImZpZWxkIjogIi1GYWxsYmFjay1zY3J1YmJlZC1YdWNaVVVnYkV4IiwgInZhbHVlIjogIi1G
+        YWxsYmFjay1zY3J1YmJlZC1Qb1RoV1FBUUhtZlJQQUZIR3JkIiwgImNvbmRpdGlvbl90eXBlIjog
+        Ii1GYWxsYmFjay1zY3J1YmJlZC1qWiJ9XX0sIHsiZmlsdGVycyI6IFt7ImZpZWxkIjogIi1GYWxs
+        YmFjay1zY3J1YmJlZC1yT3BCdEVtUiIsICJ2YWx1ZSI6ICIxMjE2IiwgImNvbmRpdGlvbl90eXBl
+        IjogIi1GYWxsYmFjay1zY3J1YmJlZC1WVSJ9XX1dLCAic29ydF9vcmRlcnMiOiBbeyJmaWVsZCI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtWHVjWlVVZ2JFeCIsICJkaXJlY3Rpb24iOiAiLUZhbGxiYWNr
+        LXNjcnViYmVkLVRaUCJ9XSwgInBhZ2Vfc2l6ZSI6IDk1ODgsICJjdXJyZW50X3BhZ2UiOiAyfSwg
+        InRvdGFsX2NvdW50IjogM30=
+version: 1

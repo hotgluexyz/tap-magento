@@ -1,0 +1,325 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/V1/store/storeConfigs?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-UA-Compatible:
+      - IE=edge
+      Server:
+      - Apache/2.4.68 (Debian)
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 04 Nov 2026 20:40:32 GMT
+      Keep-Alive:
+      - timeout=5, max=100
+    body:
+      string: !!binary |
+        W3siaWQiOiAxLCAiY29kZSI6ICJkZWZhdWx0IiwgIndlYnNpdGVfaWQiOiA0MTczLCAibG9jYWxl
+        IjogIi1GYWxsYmFjay1zY3J1YmJlZC1rR2FPUiIsICJiYXNlX2N1cnJlbmN5X2NvZGUiOiAiLUZh
+        bGxiYWNrLXNjcnViYmVkLUdEaiIsICJkZWZhdWx0X2Rpc3BsYXlfY3VycmVuY3lfY29kZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQtR0RqIiwgInRpbWV6b25lIjogIi1GYWxsYmFjay1zY3J1YmJlZC1U
+        aEMiLCAid2VpZ2h0X3VuaXQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLVNXUCIsICJiYXNlX3VybCI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtY0pYSWRReG5mcXprYnNRYnljbW1kWCIsICJiYXNlX2xpbmtf
+        dXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1jSlhJZFF4bmZxemtic1FieWNtbWRYIiwgImJhc2Vf
+        c3RhdGljX3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtZlJiVFBFQ0hwbndkSUdaV1FrR1BKRE5B
+        VlpOWHdoeXJLUllIcGZzbVlQVkF5bFMiLCAiYmFzZV9tZWRpYV91cmwiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLXZLcHRVaVFJUGFyT1VzWnJFdWVQa1V6U055WnMiLCAic2VjdXJlX2Jhc2VfdXJsIjog
+        Ii1GYWxsYmFjay1zY3J1YmJlZC1jSlhJZFF4bmZxemtic1FieWNtbWRYIiwgInNlY3VyZV9iYXNl
+        X2xpbmtfdXJsIjogIi1GYWxsYmFjay1zY3J1YmJlZC1jSlhJZFF4bmZxemtic1FieWNtbWRYIiwg
+        InNlY3VyZV9iYXNlX3N0YXRpY191cmwiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWZSYlRQRUNIcG53
+        ZElHWldRa0dQSkROQVZaTlh3aHlyS1JZSHBmc21ZUFZBeWxTIiwgInNlY3VyZV9iYXNlX21lZGlh
+        X3VybCI6ICItRmFsbGJhY2stc2NydWJiZWQtdktwdFVpUUlQYXJPVXNackV1ZVBrVXpTTnlacyJ9
+        XQ==
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/default/V1/products?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-UA-Compatible:
+      - IE=edge
+      Server:
+      - Apache/2.4.68 (Debian)
+      Content-Type:
+      - application/json; charset=utf-8
+      Expires:
+      - Thu, 19 Nov 1981 08:52:00 GMT
+      Date:
+      - Wed, 04 Nov 2026 20:40:33 GMT
+      Pragma:
+      - no-cache
+      Keep-Alive:
+      - timeout=5, max=100
+    body:
+      string: !!binary |
+        eyJpdGVtcyI6IFt7ImlkIjogMSwgInNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtRkRRZkhza0NP
+        SWZkdHpOIiwgIm5hbWUiOiAiRmFrZS1FZHdhcmQgV29vZHMiLCAiYXR0cmlidXRlX3NldF9pZCI6
+        IDQ5MTEsICJwcmljZSI6IDY3NTQsICJzdGF0dXMiOiA0MTczLCAidmlzaWJpbGl0eSI6IDQsICJ0
+        eXBlX2lkIjogIi1GYWxsYmFjay1zY3J1YmJlZC1PRWNsem4iLCAiY3JlYXRlZF9hdCI6ICIxOTg0
+        LTAxLTE1IDA1OjI1OjQyIiwgInVwZGF0ZWRfYXQiOiAiMjAyNi0xMS0wNCAyMDozNzoyOCIsICJ3
+        ZWlnaHQiOiA0MTczLCAiZXh0ZW5zaW9uX2F0dHJpYnV0ZXMiOiB7IndlYnNpdGVfaWRzIjogWzQx
+        NzNdfSwgInByb2R1Y3RfbGlua3MiOiBbXSwgIm9wdGlvbnMiOiBbXSwgIm1lZGlhX2dhbGxlcnlf
+        ZW50cmllcyI6IFtdLCAidGllcl9wcmljZXMiOiBbXSwgImN1c3RvbV9hdHRyaWJ1dGVzIjogW3si
+        YXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLXVTWGVZanF2SG1WcGdEZXJ1Iiwg
+        InZhbHVlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1CUkNIdHVieEVGIn0sIHsiYXR0cmlidXRlX2Nv
+        ZGUiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWxlSVppU1giLCAidmFsdWUiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLUZEUWZIc2tDT0lmZHR6TiJ9LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1z
+        Y3J1YmJlZC1pYVZSQUpOY2d4bG1qU3hybktHVG5HUVZmSFVmek0iLCAidmFsdWUiOiAiODQ0NyJ9
+        LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC10UG1yckR6WkZ4bE16VFZa
+        IiwgInZhbHVlIjogIjg0NDcifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJi
+        ZWQtZG5OWExCZURuRUQiLCAidmFsdWUiOiAiODQ0NyJ9LCB7ImF0dHJpYnV0ZV9jb2RlIjogIi1G
+        YWxsYmFjay1zY3J1YmJlZC1iYml6RFF2ZU5BdHYiLCAidmFsdWUiOiAiMzk1MSJ9LCB7ImF0dHJp
+        YnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC10SlJTUGxkbW1WYkIiLCAidmFsdWUiOiBb
+        XX1dfSwgeyJpZCI6IDIsICJza3UiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWdXR21lTFpicXJLaXFz
+        cSIsICJuYW1lIjogIkZha2UtSmVubmlmZXIgSGVybmFuZGV6IiwgImF0dHJpYnV0ZV9zZXRfaWQi
+        OiA0OTExLCAicHJpY2UiOiA3ODc3LCAic3RhdHVzIjogNDE3MywgInZpc2liaWxpdHkiOiA0LCAi
+        dHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtT0VjbHpuIiwgImNyZWF0ZWRfYXQiOiAiMTk3
+        Ny0xMi0wNyAxMzowMTowOCIsICJ1cGRhdGVkX2F0IjogIjIwMjYtMTEtMDQgMjA6Mzc6MjkiLCAi
+        d2VpZ2h0IjogNDE3MywgImV4dGVuc2lvbl9hdHRyaWJ1dGVzIjogeyJ3ZWJzaXRlX2lkcyI6IFs0
+        MTczXX0sICJwcm9kdWN0X2xpbmtzIjogW10sICJvcHRpb25zIjogW10sICJtZWRpYV9nYWxsZXJ5
+        X2VudHJpZXMiOiBbXSwgInRpZXJfcHJpY2VzIjogW10sICJjdXN0b21fYXR0cmlidXRlcyI6IFt7
+        ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC11U1hlWWpxdkhtVnBnRGVydSIs
+        ICJ2YWx1ZSI6ICItRmFsbGJhY2stc2NydWJiZWQtQlJDSHR1YnhFRiJ9LCB7ImF0dHJpYnV0ZV9j
+        b2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1sZUlaaVNYIiwgInZhbHVlIjogIi1GYWxsYmFjay1z
+        Y3J1YmJlZC1nV0dtZUxaYnFyS2lxc3EifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2st
+        c2NydWJiZWQtaWFWUkFKTmNneGxtalN4cm5LR1RuR1FWZkhVZnpNIiwgInZhbHVlIjogIjg0NDci
+        fSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtdFBtcnJEelpGeGxNelRW
+        WiIsICJ2YWx1ZSI6ICI4NDQ3In0sIHsiYXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNjcnVi
+        YmVkLWRuTlhMQmVEbkVEIiwgInZhbHVlIjogIjg0NDcifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICIt
+        RmFsbGJhY2stc2NydWJiZWQtYmJpekRRdmVOQXR2IiwgInZhbHVlIjogIjM5NTEifSwgeyJhdHRy
+        aWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtdEpSU1BsZG1tVmJCIiwgInZhbHVlIjog
+        W119XX1dLCAic2VhcmNoX2NyaXRlcmlhIjogeyJmaWx0ZXJfZ3JvdXBzIjogW3siZmlsdGVycyI6
+        IFt7ImZpZWxkIjogIi1GYWxsYmFjay1zY3J1YmJlZC1PT25naklYTyIsICJ2YWx1ZSI6ICIxNjIw
+        IiwgImNvbmRpdGlvbl90eXBlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1YTyJ9XX1dLCAicGFnZV9z
+        aXplIjogMjI2LCAiY3VycmVudF9wYWdlIjogMX0sICJ0b3RhbF9jb3VudCI6IDN9
+- request:
+    body: '{"query": "\n                    query getProducts($current_page: Int,
+      $page_size: Int) {\n                        products(\n                            pageSize:
+      $page_size\n                            currentPage: $current_page\n                            filter:
+      {}\n                        ) {\n                            total_count\n                            page_info
+      {\n                                page_size\n                                current_page\n                                total_pages\n                            }\n                            items
+      {\n                                \n            id\n            uid\n            name\n            sku\n            url_key\n            type_id\n            price_range
+      {\n                minimum_price {\n                    regular_price { value
+      currency }\n                    final_price { value currency }\n                    discount
+      { amount_off percent_off }\n                }\n                maximum_price
+      {\n                    regular_price { value currency }\n                    final_price
+      { value currency }\n                }\n            }\n            price_tiers
+      {\n                quantity\n                final_price { value currency }\n                discount
+      { amount_off percent_off }\n            }\n            ... on ConfigurableProduct
+      {\n                variants {\n                    product {\n                        id\n                        uid\n                        sku\n                        name\n                        url_key\n                        type_id\n                        price_range
+      {\n                            minimum_price {\n                                regular_price
+      { value currency }\n                                final_price { value currency
+      }\n                            }\n                        }\n                    }\n                    attributes
+      {\n                        label\n                        code\n                        value_index\n                    }\n                }\n            }\n            ...
+      on BundleProduct {\n                bundle_items: items {\n                    sku\n                    title\n                    options
+      {\n                        label\n                        quantity\n                        product
+      {\n                            id\n                            uid\n                            sku\n                            name\n                            url_key\n                            type_id\n                            price_range
+      {\n                                minimum_price {\n                                    final_price
+      { value currency }\n                                }\n                            }\n                        }\n                    }\n                }\n            }\n    \n                            }\n                        }\n                    }",
+      "variables": {"page_size": 150, "current_page": 1}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '2993'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: POST
+    uri: http://127.0.0.1:8085/graphql
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - max-age=0, must-revalidate, no-cache, no-store
+      Connection:
+      - Keep-Alive
+      X-UA-Compatible:
+      - IE=edge
+      Server:
+      - Apache/2.4.68 (Debian)
+      X-Content-Type-Options:
+      - nosniff
+      Content-Type:
+      - application/json
+      Expires:
+      - Tue, 04 Nov 2025 20:40:33 GMT
+      X-XSS-Protection:
+      - 1; mode=block
+      Date:
+      - Wed, 04 Nov 2026 20:40:33 GMT
+      Pragma:
+      - no-cache
+      X-Magento-Cache-Id:
+      - 94b31b410fe31769be269fee246090caa6372bbe377df6f81c1ede03977f801c
+      Keep-Alive:
+      - timeout=5, max=100
+      X-Magento-Tags:
+      - FPC
+    body:
+      string: !!binary |
+        eyJkYXRhIjogeyJwcm9kdWN0cyI6IHsidG90YWxfY291bnQiOiAzLCAicGFnZV9pbmZvIjogeyJw
+        YWdlX3NpemUiOiAyMzQ2LCAiY3VycmVudF9wYWdlIjogMSwgInRvdGFsX3BhZ2VzIjogMX0sICJp
+        dGVtcyI6IFt7ImlkIjogMywgInVpZCI6ICItRmFsbGJhY2stc2NydWJiZWQtRGtzayIsICJuYW1l
+        IjogIkZha2UtS2VubmV0aCBNYXJ0aW5leiIsICJza3UiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdE
+        YmZhUU5haW9uRmpZdSIsICJ1cmxfa2V5IjogIi1GYWxsYmFjay1zY3J1YmJlZC1HRGJmYVFOYWlv
+        bkZqWXUiLCAidHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtT0VjbHpuIiwgInByaWNlX3Jh
+        bmdlIjogeyJtaW5pbXVtX3ByaWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDQyNDQs
+        ICJjdXJyZW5jeSI6ICItRmFsbGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsi
+        dmFsdWUiOiA0MjQ0LCAiY3VycmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9LCAiZGlz
+        Y291bnQiOiB7ImFtb3VudF9vZmYiOiAyNDU2LCAicGVyY2VudF9vZmYiOiAyNDU2fX0sICJtYXhp
+        bXVtX3ByaWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDQyNDQsICJjdXJyZW5jeSI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsidmFsdWUiOiA0MjQ0
+        LCAiY3VycmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9fX0sICJwcmljZV90aWVycyI6
+        IFtdfSwgeyJpZCI6IDIsICJ1aWQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLXlqSW0iLCAibmFtZSI6
+        ICJGYWtlLUplbm5pZmVyIEhlcm5hbmRleiIsICJza3UiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWdX
+        R21lTFpicXJLaXFzcSIsICJ1cmxfa2V5IjogIi1GYWxsYmFjay1zY3J1YmJlZC1nV0dtZUxaYnFy
+        S2lxc3EiLCAidHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtT0VjbHpuIiwgInByaWNlX3Jh
+        bmdlIjogeyJtaW5pbXVtX3ByaWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDc4Nzcs
+        ICJjdXJyZW5jeSI6ICItRmFsbGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsi
+        dmFsdWUiOiA3ODc3LCAiY3VycmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9LCAiZGlz
+        Y291bnQiOiB7ImFtb3VudF9vZmYiOiAyNDU2LCAicGVyY2VudF9vZmYiOiAyNDU2fX0sICJtYXhp
+        bXVtX3ByaWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDc4NzcsICJjdXJyZW5jeSI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsidmFsdWUiOiA3ODc3
+        LCAiY3VycmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9fX0sICJwcmljZV90aWVycyI6
+        IFtdfSwgeyJpZCI6IDEsICJ1aWQiOiAiLUZhbGxiYWNrLXNjcnViYmVkLWNrWVQiLCAibmFtZSI6
+        ICJGYWtlLUVkd2FyZCBXb29kcyIsICJza3UiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUZEUWZIc2tD
+        T0lmZHR6TiIsICJ1cmxfa2V5IjogIi1GYWxsYmFjay1zY3J1YmJlZC1GRFFmSHNrQ09JZmR0ek4i
+        LCAidHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtT0VjbHpuIiwgInByaWNlX3JhbmdlIjog
+        eyJtaW5pbXVtX3ByaWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDY3NTQsICJjdXJy
+        ZW5jeSI6ICItRmFsbGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsidmFsdWUi
+        OiA2NzU0LCAiY3VycmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9LCAiZGlzY291bnQi
+        OiB7ImFtb3VudF9vZmYiOiAyNDU2LCAicGVyY2VudF9vZmYiOiAyNDU2fX0sICJtYXhpbXVtX3By
+        aWNlIjogeyJyZWd1bGFyX3ByaWNlIjogeyJ2YWx1ZSI6IDY3NTQsICJjdXJyZW5jeSI6ICItRmFs
+        bGJhY2stc2NydWJiZWQtR0RqIn0sICJmaW5hbF9wcmljZSI6IHsidmFsdWUiOiA2NzU0LCAiY3Vy
+        cmVuY3kiOiAiLUZhbGxiYWNrLXNjcnViYmVkLUdEaiJ9fX0sICJwcmljZV90aWVycyI6IFtdfV19
+        fX0=
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.34.2
+    method: GET
+    uri: http://127.0.0.1:8085/rest/default/V1/products?searchCriteria%5BpageSize%5D=2&searchCriteria%5BcurrentPage%5D=2&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bfield%5D=store_id&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bvalue%5D=1&searchCriteria%5BfilterGroups%5D%5B2%5D%5Bfilters%5D%5B0%5D%5Bcondition_type%5D=in
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      X-Frame-Options:
+      - SAMEORIGIN
+      - SAMEORIGIN
+      Transfer-Encoding:
+      - chunked
+      Cache-Control:
+      - no-store
+      Connection:
+      - Keep-Alive
+      X-UA-Compatible:
+      - IE=edge
+      Server:
+      - Apache/2.4.68 (Debian)
+      Content-Type:
+      - application/json; charset=utf-8
+      Expires:
+      - Thu, 19 Nov 1981 08:52:00 GMT
+      Date:
+      - Wed, 04 Nov 2026 20:40:33 GMT
+      Pragma:
+      - no-cache
+      Keep-Alive:
+      - timeout=5, max=100
+    body:
+      string: !!binary |
+        eyJpdGVtcyI6IFt7ImlkIjogMywgInNrdSI6ICItRmFsbGJhY2stc2NydWJiZWQtR0RiZmFRTmFp
+        b25Gall1IiwgIm5hbWUiOiAiRmFrZS1LZW5uZXRoIE1hcnRpbmV6IiwgImF0dHJpYnV0ZV9zZXRf
+        aWQiOiA0OTExLCAicHJpY2UiOiA0MjQ0LCAic3RhdHVzIjogNDE3MywgInZpc2liaWxpdHkiOiA0
+        LCAidHlwZV9pZCI6ICItRmFsbGJhY2stc2NydWJiZWQtT0VjbHpuIiwgImNyZWF0ZWRfYXQiOiAi
+        MTk3Ny0xMi0wNyAxMzowMTowOCIsICJ1cGRhdGVkX2F0IjogIjIwMjYtMTEtMDQgMjA6Mzc6Mjki
+        LCAid2VpZ2h0IjogNDE3MywgImV4dGVuc2lvbl9hdHRyaWJ1dGVzIjogeyJ3ZWJzaXRlX2lkcyI6
+        IFs0MTczXX0sICJwcm9kdWN0X2xpbmtzIjogW10sICJvcHRpb25zIjogW10sICJtZWRpYV9nYWxs
+        ZXJ5X2VudHJpZXMiOiBbXSwgInRpZXJfcHJpY2VzIjogW10sICJjdXN0b21fYXR0cmlidXRlcyI6
+        IFt7ImF0dHJpYnV0ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC11U1hlWWpxdkhtVnBnRGVy
+        dSIsICJ2YWx1ZSI6ICItRmFsbGJhY2stc2NydWJiZWQtQlJDSHR1YnhFRiJ9LCB7ImF0dHJpYnV0
+        ZV9jb2RlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1sZUlaaVNYIiwgInZhbHVlIjogIi1GYWxsYmFj
+        ay1zY3J1YmJlZC1HRGJmYVFOYWlvbkZqWXUifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJh
+        Y2stc2NydWJiZWQtaWFWUkFKTmNneGxtalN4cm5LR1RuR1FWZkhVZnpNIiwgInZhbHVlIjogIjg0
+        NDcifSwgeyJhdHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtdFBtcnJEelpGeGxN
+        elRWWiIsICJ2YWx1ZSI6ICI4NDQ3In0sIHsiYXR0cmlidXRlX2NvZGUiOiAiLUZhbGxiYWNrLXNj
+        cnViYmVkLWRuTlhMQmVEbkVEIiwgInZhbHVlIjogIjg0NDcifSwgeyJhdHRyaWJ1dGVfY29kZSI6
+        ICItRmFsbGJhY2stc2NydWJiZWQtYmJpekRRdmVOQXR2IiwgInZhbHVlIjogIjM5NTEifSwgeyJh
+        dHRyaWJ1dGVfY29kZSI6ICItRmFsbGJhY2stc2NydWJiZWQtdEpSU1BsZG1tVmJCIiwgInZhbHVl
+        IjogW119XX1dLCAic2VhcmNoX2NyaXRlcmlhIjogeyJmaWx0ZXJfZ3JvdXBzIjogW3siZmlsdGVy
+        cyI6IFt7ImZpZWxkIjogIi1GYWxsYmFjay1zY3J1YmJlZC1PT25naklYTyIsICJ2YWx1ZSI6ICIx
+        NjIwIiwgImNvbmRpdGlvbl90eXBlIjogIi1GYWxsYmFjay1zY3J1YmJlZC1YTyJ9XX1dLCAicGFn
+        ZV9zaXplIjogMjI2LCAiY3VycmVudF9wYWdlIjogMn0sICJ0b3RhbF9jb3VudCI6IDN9
+version: 1

@@ -1,0 +1,6 @@
+{"type": "SCHEMA", "stream": "source_items", "schema": {"properties": {"sku": {"type": ["string", "null"]}, "source_code": {"type": ["string", "null"]}, "quantity": {"type": ["number", "null"]}, "status": {"type": ["number", "null"]}}, "type": "object"}, "key_properties": []}
+{"type": "RECORD", "stream": "source_items", "record": {"sku": "-Fallback-scrubbed-FsRXgKTpErwvxia", "source_code": "-Fallback-scrubbed-zKFqgkq", "quantity": 3185, "status": 6128}, "time_extracted": "2026-11-05T18:45:05.286583Z"}
+{"type": "RECORD", "stream": "source_items", "record": {"sku": "-Fallback-scrubbed-eJqKriGFNBsWOkb", "source_code": "-Fallback-scrubbed-zKFqgkq", "quantity": 3185, "status": 6128}, "time_extracted": "2026-11-05T18:45:05.286727Z"}
+{"type": "RECORD", "stream": "source_items", "record": {"sku": "-Fallback-scrubbed-xJrhHZIvsxcsZGf", "source_code": "-Fallback-scrubbed-zKFqgkq", "quantity": 3185, "status": 6128}, "time_extracted": "2026-11-05T18:45:05.286847Z"}
+{"type": "STATE", "value": {"bookmarks": {"stores": {"starting_replication_value": null}, "source_items": {"partitions": []}}}}
+{"type": "STATE", "value": {"bookmarks": {"stores": {}, "source_items": {"partitions": []}}}}
