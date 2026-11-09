@@ -20,14 +20,8 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-local = json.loads(Path("local-config.json").read_text())
-config_path = Path.cwd().parent / ".secrets" / "config.json"
-existing = config_path.read_text().strip() if config_path.exists() else ""
-config = json.loads(existing) if existing else {}
-config.update(local)
-config_path.parent.mkdir(parents=True, exist_ok=True)
-config_path.write_text(json.dumps(config, indent=4) + "\n")
-print(f"Updated {config_path}")
+config = json.loads(Path("local-config.json").read_text())
+config_path = Path.cwd().parent / ".secrets" / "sandbox" / "config.json"
 
 url = config["store_url"]
 login = Request(
@@ -49,11 +43,20 @@ try:
         json.load(response)
 except (URLError, TimeoutError, ValueError):
     raise SystemExit("Magento REST check failed. Check the sandbox services and local-config.json.") from None
+
+config_path.parent.mkdir(parents=True, exist_ok=True)
+config.pop("username")
+config.pop("password")
+config["access_token"] = token
+config_path.write_text(json.dumps(config, indent=4) + "\n")
+config_path.chmod(0o600)
+print(f"Updated {config_path}")
 PY
 
 echo "Sandbox is ready."
 echo "  Store:  http://localhost:8081"
 echo "  Admin:  http://localhost:8081/admin"
-echo "  Config: .secrets/config.json (includes the admin login)"
+echo "  Admin login: sandbox/local-config.json"
+echo "  Tap config: .secrets/sandbox/config.json"
 echo "Run the tap from the repository root:"
-echo "  poetry run tap-magento --config .secrets/config.json"
+echo "  poetry run tap-magento --config .secrets/sandbox/config.json"
