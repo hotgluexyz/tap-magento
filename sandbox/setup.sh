@@ -140,5 +140,7 @@ chmod('/setup/local-config.json', 0600);
 echo "Sample data ready: 3 products, 2 customers, 2 orders, 1 invoice.\n";
 PHP
 
+chown "$(stat -c '%u:%g' /setup)" /setup/local-config.json
+
 php bin/magento cache:flush
 chown -R application:application /app
