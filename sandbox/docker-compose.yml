@@ -1,0 +1,68 @@
+name: tap-magento-sandbox
+
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: magento
+      MARIADB_USER: magento
+      MARIADB_PASSWORD: magento
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  opensearch:
+    image: opensearchproject/opensearch:3.0.0
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - search:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  magento:
+    image: webdevops/php-apache:8.3
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      WEB_DOCUMENT_ROOT: /app/pub
+      PHP_MEMORY_LIMIT: 2G
+      PHP_MAX_EXECUTION_TIME: 600
+    volumes:
+      - magento:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+
+  setup:
+    image: webdevops/php-apache:8.3
+    profiles: ["setup"]
+    working_dir: /app
+    environment:
+      COMPOSER_ALLOW_SUPERUSER: "1"
+      PHP_MEMORY_LIMIT: 2G
+    volumes:
+      - magento:/app
+      - .:/setup:rw
+    command: ["/bin/sh", "/setup/setup.sh"]
+    depends_on:
+      magento:
+        condition: service_started
+
+volumes:
+  db:
+  search:
+  magento:
