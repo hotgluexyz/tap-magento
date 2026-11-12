@@ -73,6 +73,20 @@ class TestGiveUpHandler:
 
 
 class TestValidateResponse:
+    def test_token_validation_uses_base_stream_validator(self, monkeypatch):
+        stream = _make_stream()
+        stream._config = {"store_url": "https://example.com"}
+        stream._requests_session = MagicMock()
+        response = _response(text='"admin-token"')
+
+        def get_token(_session, _url_base, _config, _headers, validate_response):
+            validate_response(response)
+            return "admin-token"
+
+        monkeypatch.setattr("tap_magento.client.get_admin_token", get_token)
+
+        assert stream.get_token() == "admin-token"
+
     def test_missing_page_info_includes_store_and_preview(self):
         stream = _make_stream()
         response = _response(text='{"data":{"products":null}}')
